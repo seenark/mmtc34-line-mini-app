@@ -15,8 +15,14 @@ function AdminLayout() {
   return (
     <div className="mx-auto flex min-h-svh max-w-3xl flex-col">
       <header className="flex items-center justify-between gap-2 border-b p-3">
-        <NavSlot slot="admin" />
-        <Link to="/" className={buttonVariants({ variant: "outline" })}>
+        {/* nav.tsx renders a bare flex row; scoped variants keep labels on one line and the row scrollable */}
+        <div className="min-w-0 overflow-x-auto [&_a]:whitespace-nowrap [&_nav]:w-max [&_nav]:gap-3">
+          <NavSlot slot="admin" />
+        </div>
+        <Link
+          to="/"
+          className={`${buttonVariants({ variant: "outline" })} shrink-0 whitespace-nowrap`}
+        >
           กลับหน้าสมาชิก
         </Link>
       </header>

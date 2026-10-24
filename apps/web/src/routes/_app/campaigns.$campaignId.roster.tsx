@@ -1,0 +1,51 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { rosterQuery } from "@/api/roster";
+import type { RosterItem } from "@/api/types.gen";
+
+export const Route = createFileRoute("/_app/campaigns/$campaignId/roster")({
+  staticData: {
+    nav: { slot: "memberCampaign", label: "รายชื่อ", order: 30 },
+  },
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(rosterQuery(params.campaignId)),
+  component: Roster,
+});
+
+const itemLabel = (i: RosterItem) =>
+  `${[i.optionName, i.size].filter(Boolean).join(" ")} ×${i.quantity}`;
+
+function Roster() {
+  const { campaignId } = Route.useParams();
+  const { data: roster } = useSuspenseQuery(rosterQuery(campaignId));
+  if (roster.length === 0) {
+    return <p className="text-muted-foreground text-sm">ยังไม่มีคนสั่ง</p>;
+  }
+  const pieces = roster.reduce(
+    (sum, e) => sum + e.items.reduce((s, i) => s + i.quantity, 0),
+    0,
+  );
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold">
+        สั่งแล้ว {roster.length} คน · {pieces} ชิ้น
+      </h2>
+      <ol className="flex flex-col gap-2 text-sm">
+        {roster.map((e, idx) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: nicknames repeat; list is never reordered
+          <li key={idx} className="flex gap-2 break-words">
+            <span className="text-muted-foreground w-6 shrink-0 text-right">
+              {idx + 1}.
+            </span>
+            <span className="min-w-0">
+              <span className="font-medium">{e.nickname}</span>
+              {" — "}
+              {e.items.map(itemLabel).join(", ")}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
