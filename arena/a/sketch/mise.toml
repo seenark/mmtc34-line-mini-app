@@ -1,0 +1,62 @@
+[tools]
+bun = "1.4.4"
+go = "1.27.3"
+sqlc = "1.31.1"
+"go:github.com/gzuidhof/tygo" = "0.2.21"
+
+[env]
+BASE_PATH = "/mmtc34"
+DATA_DIR = "{{config_root}}/data"
+
+# Codegen order: sqlc (Go compiles) and tygo (web typechecks) are independent;
+# TanStack's routeTree.gen.ts is produced by the Vite plugin during `bun run dev|build`.
+[tasks."gen:sqlc"]
+dir = "apps/server"
+run = "sqlc generate"
+
+[tasks."gen:types"]
+dir = "apps/server"
+run = "tygo generate"
+
+[tasks.gen]
+depends = ["gen:sqlc", "gen:types"]
+
+[tasks."dev:server"]
+dir = "apps/server"
+env = { DEV_LOGIN = "1", SESSION_SECRET = "dev-secret-dev-secret-dev-secret-00", PORT = "8080" }
+run = "go run ."
+
+[tasks."dev:web"]
+depends = ["gen:types"]
+dir = "apps/web"
+run = "bun run dev" # Vite proxies $BASE_PATH/api -> :8080
+
+[tasks.dev]
+depends = ["dev:server", "dev:web"]
+
+[tasks.seed]
+dir = "apps/server"
+run = "go run . seed"
+
+[tasks.test]
+depends = ["gen:sqlc"]
+dir = "apps/server"
+run = "go test ./..."
+
+[tasks.check]
+depends = ["gen"]
+run = ["cd apps/server && go vet ./...", "cd apps/web && bunx biome check . && bun run typecheck"]
+
+[tasks."web:build"]
+depends = ["gen:types"]
+dir = "apps/web"
+run = "bun install --frozen-lockfile && bun run build" # outDir: apps/server/internal/spa/dist
+
+[tasks.build]
+depends = ["gen:sqlc", "web:build"]
+dir = "apps/server"
+env = { CGO_ENABLED = "0" }
+run = "go build -trimpath -o ../../bin/mmtc34 ."
+
+[tasks.docker]
+run = "docker build --build-arg BASE_PATH=$BASE_PATH -t mmtc34:latest ."

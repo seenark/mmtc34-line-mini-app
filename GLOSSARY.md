@@ -57,7 +57,7 @@ How an Order reaches the Member: shipped to the address captured on that Order, 
 _Avoid_: Shipping option
 
 **Balance**:
-What an Order still owes: Item totals minus its confirmed Payment, plus Adjustments.
+What an Order still owes: Item totals minus its confirmed Payments, plus Adjustments. A cancelled Order owes nothing for its Items.
 _Avoid_: Debt, outstanding, total
 
 ## Money
