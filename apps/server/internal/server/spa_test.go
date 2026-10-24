@@ -65,3 +65,23 @@ func TestSPAHandler(t *testing.T) {
 		t.Errorf("client route body = %q, want index.html", rec.Body.String())
 	}
 }
+
+func TestSPAResponsesCarryHardeningHeaders(t *testing.T) {
+	dist := fstest.MapFS{
+		"index.html":  {Data: []byte("<html>app</html>")},
+		"assets/a.js": {Data: []byte("js")},
+	}
+	engine := gin.New()
+	engine.NoRoute(spaHandler(dist, "/x"))
+
+	for _, p := range []string{"/x/", "/x/campaigns/1", "/x/assets/a.js"} {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, p, nil))
+		if got := rec.Header().Get("Referrer-Policy"); got != "same-origin" {
+			t.Errorf("%s: Referrer-Policy = %q, want same-origin", p, got)
+		}
+		if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+			t.Errorf("%s: X-Content-Type-Options = %q, want nosniff", p, got)
+		}
+	}
+}

@@ -1,4 +1,4 @@
--- Owned by ticket .6: cash Payments and Adjustments. Reads go through orders.sql.
+-- Cash Payments and Adjustments. Reads go through orders.sql.
 
 -- name: InsertCashPayment :exec
 -- Cash is confirmed on entry and carries no Slip (slip NULL).

@@ -14,7 +14,7 @@ const deleteItemsForOrder = `-- name: DeleteItemsForOrder :exec
 DELETE FROM items WHERE order_id = ?1
 `
 
-// Owned by ticket .7. Admin edit replaces an Order's Items and delivery fields.
+// Admin edit replaces an Order's Items and delivery fields.
 func (q *Queries) DeleteItemsForOrder(ctx context.Context, orderID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteItemsForOrder, orderID)
 	return err

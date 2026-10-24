@@ -64,6 +64,10 @@ func (s *Server) recordCash(c *gin.Context) {
 	}
 	me := actorOf(c)
 	s.apply(c, domain.EvRecordCash, func(q *db.Queries, o domain.Order) error {
+		o.Stored = api.OrderPaid // the state this cash produces: a closed Campaign's unpaid Order still owes its Total
+		if in.Amount > o.Money().Balance {
+			return &domain.Error{Kind: domain.Conflict, Msg: "ยอดเกินยอดค้างชำระ"}
+		}
 		return q.InsertCashPayment(c.Request.Context(), db.InsertCashPaymentParams{
 			OrderID: o.ID, Amount: &in.Amount, Now: rfc3339(s.now()), ReviewedBy: &me.MemberID,
 		})

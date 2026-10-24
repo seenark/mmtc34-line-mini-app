@@ -8,8 +8,13 @@ import (
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/api"
 )
 
+const (
+	maxItems    = 50
+	maxDonation = 1_000_000
+)
+
 // ValidItem has its unit price captured: the Option price at checkout, or the donor's amount.
-// ID is the input's ItemInput.ID, passed through for Admin edit (.7).
+// ID is the input's ItemInput.ID, passed through for Admin edit.
 type ValidItem struct {
 	ID                      *int64
 	OptionID                int64
@@ -49,6 +54,9 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 	}
 	if len(in.Items) == 0 {
 		return bad("กรุณาเลือกสินค้าอย่างน้อย 1 รายการ")
+	}
+	if len(in.Items) > maxItems {
+		return bad("สั่งซื้อได้ไม่เกิน %d รายการต่อคำสั่งซื้อ", maxItems)
 	}
 	v := ValidOrder{delivery: in.Delivery, items: make([]ValidItem, len(in.Items))}
 	switch in.Delivery {
@@ -103,6 +111,8 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 			return bad("รายการที่ %d: ตัวเลือกนี้มีราคาคงที่ ไม่ต้องระบุจำนวนเงิน", n)
 		case opt.Price == nil && !same && (it.Amount == nil || *it.Amount <= 0):
 			return bad("รายการที่ %d: กรุณาระบุจำนวนเงินที่มากกว่า 0", n)
+		case opt.Price == nil && !same && *it.Amount > maxDonation:
+			return bad("รายการที่ %d: จำนวนเงินต้องไม่เกิน 1,000,000 บาท", n)
 		case opt.Price == nil && it.Quantity != 1:
 			return bad("รายการที่ %d: ตัวเลือกที่ระบุจำนวนเงินเองสั่งได้ครั้งละ 1 ชิ้น", n)
 		case same:

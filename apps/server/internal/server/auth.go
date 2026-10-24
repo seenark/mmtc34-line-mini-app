@@ -22,7 +22,6 @@ func (s *Server) mountAuth(r routes) {
 	r.self.POST("/me", s.onboard)
 }
 
-// lineLogin verifies the ID token with LINE and starts a session for its userId.
 func (s *Server) lineLogin(c *gin.Context) {
 	in, ok := bind[api.LineLoginInput](c)
 	if !ok {

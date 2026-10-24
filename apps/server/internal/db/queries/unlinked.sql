@@ -1,4 +1,4 @@
--- Owned by ticket .7. Creating an Unlinked Member reuses CreateMember with a NULL line_user_id.
+-- Creating an Unlinked Member reuses CreateMember with a NULL line_user_id.
 
 -- name: LinkMember :one
 -- Blank Applicant fields keep what the Admin already recorded for the Unlinked Member.

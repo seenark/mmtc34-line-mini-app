@@ -98,7 +98,7 @@ type RosterItem struct {
 	Quantity   int64  `json:"quantity"`
 }
 
-// RosterEntry deliberately has no status, money, address, phone or real name (story 45).
+// RosterEntry deliberately has no status, money, address, phone or real name.
 type RosterEntry struct {
 	Nickname string       `json:"nickname"`
 	Items    []RosterItem `json:"items"`

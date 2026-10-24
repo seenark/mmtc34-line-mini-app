@@ -22,22 +22,21 @@ func (s *Server) mountPayments(r routes) {
 	r.admin.POST("/orders/:orderId/reject", s.rejectSlip)
 }
 
-// uploadSlip saves the file inside the apply effect, i.e. after Decide, so a refused upload
-// stores nothing. A file whose transaction then fails is deleted.
+// uploadSlip reads the body before apply opens the write transaction, so a slow upload never
+// holds the SQLite write lock. A file whose Decide or transaction then fails is deleted.
 func (s *Server) uploadSlip(c *gin.Context) {
-	var saved string
+	name, err := s.saveUpload(c, kindSlips)
+	if err != nil {
+		fail(c, err)
+		return
+	}
 	ok := s.apply(c, domain.EvUploadSlip, func(q *db.Queries, o domain.Order) error {
-		name, err := s.saveUpload(c, kindSlips)
-		if err != nil {
-			return err
-		}
-		saved = name
 		return q.InsertPendingPayment(c.Request.Context(), db.InsertPendingPaymentParams{
 			OrderID: o.ID, Slip: &name, Now: rfc3339(s.now()),
 		})
 	})
-	if !ok && saved != "" {
-		os.Remove(s.filePath(kindSlips, saved))
+	if !ok {
+		os.Remove(s.filePath(kindSlips, name))
 	}
 }
 

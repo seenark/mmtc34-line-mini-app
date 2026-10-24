@@ -1,5 +1,5 @@
 // Package db is sqlc output (db.go, models.go, <queryfile>.sql.go) plus Open.
-// Hand-written files here: open.go, and seed.go once ticket .3 adds it. Everything else is generated; never edit it.
+// Hand-written files here: open.go and seed.go. Everything else is generated; never edit it.
 package db
 
 import (

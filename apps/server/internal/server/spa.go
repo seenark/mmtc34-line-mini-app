@@ -45,6 +45,8 @@ func spaHandler(dist fs.FS, basePath string) gin.HandlerFunc {
 			return
 		}
 
+		c.Header("Referrer-Policy", "same-origin")
+		c.Header("X-Content-Type-Options", "nosniff")
 		name := path.Clean("/" + rel)[1:]
 		if info, err := fs.Stat(dist, name); err == nil && !info.IsDir() && name != "index.html" {
 			if strings.HasPrefix(name, "assets/") {

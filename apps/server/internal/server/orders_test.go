@@ -61,6 +61,27 @@ func TestDonationAmountIsChosenByTheMember(t *testing.T) {
 	Equal(t, o.Items[0].UnitPrice, int64(150))
 }
 
+func TestCheckoutLimits(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	camp := As[api.Campaign](admin.POST("/api/admin/campaigns", api.CampaignInput{Type: api.CampaignDonation, Title: "ระดมทุน", Status: api.CampaignOpen}).Status(201))
+	opt := As[api.Option](admin.POST(fmt.Sprintf("/api/admin/campaigns/%d/options", camp.ID), api.OptionInput{Name: "บริจาค"}).Status(201))
+
+	many := make([]api.ItemInput, 51)
+	for i := range many {
+		many[i] = Shirt(j, "M", 1)
+	}
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), Pickup(many...)).Status(400).Error(), "สั่งซื้อได้ไม่เกิน 50 รายการต่อคำสั่งซื้อ")
+	Equal(t, len(alice.Checkout(j.Campaign.ID, Pickup(many[:50]...)).Items), 50)
+
+	gift := func(amount int64) api.OrderInput {
+		return Pickup(api.ItemInput{OptionID: opt.ID, Quantity: 1, Amount: &amount})
+	}
+	Equal(t, alice.POST(ordersPath(camp.ID), gift(1_000_001)).Status(400).Error(), "รายการที่ 1: จำนวนเงินต้องไม่เกิน 1,000,000 บาท")
+	Equal(t, alice.Checkout(camp.ID, gift(1_000_000)).Total, int64(1_000_000))
+}
+
 func TestCheckoutTotalsAndCapturedPrice(t *testing.T) {
 	h := New(t)
 	alice, admin := h.Member("alice"), h.Admin()

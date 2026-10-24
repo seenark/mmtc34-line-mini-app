@@ -45,9 +45,9 @@ type InsertPendingPaymentParams struct {
 	Now     string
 }
 
-// Owned by ticket .5: Slip writes and the Slip ownership lookup. Payments are read for
-// display only through orders.sql (ListPaymentsForOrders); rejecting a pending Payment is
-// orders.sql RejectPendingPayment, shared with Admin cancel.
+// Slip writes and the Slip ownership lookup. Payments are read for display only through
+// orders.sql (ListPaymentsForOrders); rejecting a pending Payment is orders.sql
+// RejectPendingPayment, shared with Admin cancel.
 func (q *Queries) InsertPendingPayment(ctx context.Context, arg InsertPendingPaymentParams) error {
 	_, err := q.db.ExecContext(ctx, insertPendingPayment, arg.OrderID, arg.Slip, arg.Now)
 	return err

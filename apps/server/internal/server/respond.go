@@ -46,10 +46,19 @@ func abort(c *gin.Context, status int, msg string) {
 	c.AbortWithStatusJSON(status, api.ErrorResponse{Error: msg})
 }
 
-// bind decodes JSON into T or fails 400 "ข้อมูลไม่ถูกต้อง". ok=false means the response is written.
+const maxJSONBody = 64 << 10
+
+// bind decodes JSON (body capped at maxJSONBody) into T or fails 400 "ข้อมูลไม่ถูกต้อง", or 413
+// when the body is over the cap. ok=false means the response is written.
 func bind[T any](c *gin.Context) (in T, ok bool) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxJSONBody)
 	if err := c.ShouldBindJSON(&in); err != nil {
-		fail(c, &domain.Error{Kind: domain.Invalid, Msg: "ข้อมูลไม่ถูกต้อง"})
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			fail(c, &domain.Error{Kind: domain.TooLarge, Msg: "ข้อมูลใหญ่เกินกำหนด"})
+		} else {
+			fail(c, &domain.Error{Kind: domain.Invalid, Msg: "ข้อมูลไม่ถูกต้อง"})
+		}
 		return in, false
 	}
 	return in, true

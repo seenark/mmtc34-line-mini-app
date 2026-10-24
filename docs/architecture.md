@@ -5,11 +5,10 @@ machine with one `apply` entry point; a schema and route table frozen by the ske
 wave ticket only **adds files**; navigation derived from route `staticData` so the web side has
 no shared menu list either.
 
-Sketch: `arena/a/sketch/` mirrors the repo (`apps/server/...`, `apps/web/...`, `mise.toml`,
-`Dockerfile`, `compose.yaml`). Go module path: `github.com/seenark/mmtc34-line-mini-app/apps/server`.
-
-**This document overrides the sketch.** Where they differ (see "Synthesis decision" near the end),
-follow this document. The sketch is a starting point to copy from, not a contract.
+Go module path: `github.com/seenark/mmtc34-line-mini-app/apps/server`. The code is the source of
+truth; this document records the design and why. The architect-arena sketch it was drawn from
+(`arena/a/sketch/`) was deleted once milestone 1 landed; the "Synthesis decision" section lists
+where the build deviated from that sketch.
 
 ---
 

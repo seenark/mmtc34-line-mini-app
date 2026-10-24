@@ -5,8 +5,7 @@ import type { OrderActions } from "@/api/types.gen";
 
 // Navigation is derived from the routes themselves: a route file declares
 //   staticData: { nav: { slot: "admin", label: "ตรวจสลิป", order: 20, badge: pendingSlipCount } }
-// and the layout for that slot renders <NavSlot slot="admin" />. No hand-kept menu list exists,
-// so parallel tickets add screens and tabs without editing a shared file.
+// and the layout for that slot renders <NavSlot slot="admin" />. No hand-kept menu list exists.
 
 export type NavSlotName =
   | "member" // bottom bar of the approved-Member layout (_app.tsx)

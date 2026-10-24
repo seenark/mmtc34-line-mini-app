@@ -149,6 +149,17 @@ func TestExportPrefixesFormulaCells(t *testing.T) {
 	Equal(t, recs[1][2], "'=1+1")
 }
 
+func TestExportDefusesPrintNameWithLeadingTab(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	pay(admin, alice, alice.Checkout(j.Campaign.ID, Pickup(cartItem(j, "M", "\t=1+1", "7", 1))))
+
+	recs := records(t, admin.GET(exportPath(j.Campaign.ID, "factory")).Status(200))
+
+	Equal(t, recs[1][2], "'=1+1")
+}
+
 func TestExportsAreAdminOnlyAndNeedACampaign(t *testing.T) {
 	h := New(t)
 	alice, admin := h.Member("alice"), h.Admin()

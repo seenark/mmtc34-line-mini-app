@@ -110,6 +110,24 @@ func TestCashIsRefusedWhileASlipIsPendingReview(t *testing.T) {
 	Equal(t, len(admin.Order(o.ID).Payments), 1)
 }
 
+func TestCashCannotExceedTheBalance(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 2)))
+
+	admin.POST(cashPath(o.ID), api.AmountInput{Amount: 600}).Status(409)
+	Equal(t, len(admin.Order(o.ID).Payments), 0)
+
+	admin.Cash(o.ID, 520)
+	admin.POST(cashPath(o.ID), api.AmountInput{Amount: 520}).Status(409)
+
+	got := admin.Order(o.ID)
+	Equal(t, got.Paid, int64(520))
+	Equal(t, got.Balance, int64(0))
+	Equal(t, len(got.Payments), 1)
+}
+
 func TestAdjustmentsMoveTheBalanceOfPaidAndAwaitingOrders(t *testing.T) {
 	h := New(t)
 	alice, bob, admin := h.Member("alice"), h.Member("bob"), h.Admin()

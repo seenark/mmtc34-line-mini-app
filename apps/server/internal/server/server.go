@@ -108,9 +108,23 @@ func New(d Deps) (http.Handler, error) {
 	engine.Use(gin.Recovery())
 	engine.RedirectTrailingSlash = false
 	engine.RedirectFixedPath = false
-	s.mount(engine.Group(d.Config.BasePath).Group("/api"))
+	apiGroup := engine.Group(d.Config.BasePath).Group("/api")
+	apiGroup.Use(rejectCrossSiteWrites)
+	s.mount(apiGroup)
 	engine.NoRoute(spaHandler(dist, d.Config.BasePath))
 	return engine, nil
+}
+
+// rejectCrossSiteWrites 403s a state-changing request that a browser marks as not
+// same-origin. A missing Sec-Fetch-Site (non-browser client, old webview) passes.
+func rejectCrossSiteWrites(c *gin.Context) {
+	switch c.Request.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return
+	}
+	if site := c.GetHeader("Sec-Fetch-Site"); site != "" && site != "same-origin" {
+		abort(c, http.StatusForbidden, "ไม่อนุญาตคำขอข้ามเว็บไซต์")
+	}
 }
 
 // tx runs fn in one IMMEDIATE transaction (DSN _txlock=immediate), so check-then-write

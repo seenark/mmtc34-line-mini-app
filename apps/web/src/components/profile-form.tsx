@@ -1,10 +1,9 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
-import { Label } from "@mmtc34/ui/components/label";
 import { Textarea } from "@mmtc34/ui/components/textarea";
-import type { ReactElement } from "react";
 
 import type { ProfileInput } from "@/api/types.gen";
+import { Field } from "@/components/campaign/field";
 
 /**
  * Cohort, nickname and real name are required; address and phone are optional.
@@ -90,21 +89,5 @@ export function ProfileForm(props: {
         {props.submitLabel}
       </Button>
     </form>
-  );
-}
-
-function Field(props: {
-  label: string;
-  required?: boolean;
-  children: ReactElement<{ id: string }>;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={props.children.props.id}>
-        {props.label}
-        {props.required && <span className="text-destructive">*</span>}
-      </Label>
-      {props.children}
-    </div>
   );
 }

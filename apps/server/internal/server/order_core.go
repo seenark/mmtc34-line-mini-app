@@ -12,8 +12,6 @@ import (
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/domain"
 )
 
-// The Order core every later ticket calls and none edits.
-
 // orderScope selects Orders; nil fields mean "any". Status filtering is never done in SQL:
 // it must use effective status, which only domain.Order.Status knows.
 type orderScope struct {
@@ -251,13 +249,9 @@ func (s *Server) checkout(c *gin.Context, campaignID, memberID int64, placedByAd
 		if err := domainCampaign(camp).CanCheckout(placedByAdmin, s.now()); err != nil {
 			return err
 		}
-		rows, err := q.ListOptions(ctx, campaignID)
+		options, err := s.campaignOptions(ctx, q, campaignID)
 		if err != nil {
 			return err
-		}
-		options := make([]api.Option, len(rows))
-		for i, r := range rows {
-			options[i] = toAPIOption(r)
 		}
 		v, err := domain.ValidateOrder(options, in)
 		if err != nil {

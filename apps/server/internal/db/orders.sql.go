@@ -225,10 +225,9 @@ type ListOrdersRow struct {
 	MemberRealName string
 }
 
-// Owned by ticket .4. Every Order read in the app goes through the four reads below
-// (server.loadOrders); no other query file selects from orders/items/payments/adjustments
-// for display. Writes for slips (.5), cash/adjustments (.6), admin edit (.7) and
-// PDPA erase (.11) live in their own query files.
+// Every Order read in the app goes through the four reads below (server.loadOrders);
+// no other query file selects from orders/items/payments/adjustments for display.
+// Writes for slips, cash/adjustments, admin edit and PDPA erase live in their own query files.
 // Filters are optional (NULL = any). The Campaign row comes along so domain.Order can compute
 // effective status without a second lookup. Newest first.
 func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListOrdersRow, error) {

@@ -1,4 +1,4 @@
--- Complete milestone-1 schema. Written once by ticket .1; no wave ticket edits it.
+-- Complete milestone-1 schema.
 -- A later schema change adds a NEW file named with a goose timestamp version
 -- (e.g. 20261101093000_add_x.sql) so two parallel branches never pick the same number.
 --
@@ -32,7 +32,7 @@ CREATE TABLE members (
     phone        TEXT    NOT NULL DEFAULT '',
     deleted_at   TEXT,
     created_at   TEXT    NOT NULL,
-    -- A deleted Member keeps only its nickname (PDPA, story 9-11).
+    -- A deleted Member keeps only its nickname (PDPA).
     CHECK (deleted_at IS NULL OR (line_user_id IS NULL AND real_name = '' AND cohort = ''
                                   AND address = '' AND phone = '')),
     -- An Applicant always came through LINE; Unlinked Members are created approved.
@@ -101,7 +101,7 @@ CREATE INDEX orders_member ON orders (member_id);
 CREATE TABLE items (
     id          INTEGER PRIMARY KEY,
     order_id    INTEGER NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
-    -- RESTRICT is the rule "an Option used by an Item cannot be deleted" (story 23 / ticket .3).
+    -- RESTRICT enforces that an Option used by an Item cannot be deleted.
     option_id   INTEGER NOT NULL REFERENCES options (id) ON DELETE RESTRICT,
     size        TEXT    NOT NULL DEFAULT '',
     print_name  TEXT    NOT NULL DEFAULT '',

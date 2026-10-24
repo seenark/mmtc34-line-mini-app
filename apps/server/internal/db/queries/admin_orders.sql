@@ -1,4 +1,4 @@
--- Owned by ticket .7. Admin edit replaces an Order's Items and delivery fields.
+-- Admin edit replaces an Order's Items and delivery fields.
 
 -- name: DeleteItemsForOrder :exec
 DELETE FROM items WHERE order_id = sqlc.arg(order_id);

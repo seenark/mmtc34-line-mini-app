@@ -46,7 +46,7 @@ type InsertCashPaymentParams struct {
 	ReviewedBy *int64
 }
 
-// Owned by ticket .6: cash Payments and Adjustments. Reads go through orders.sql.
+// Cash Payments and Adjustments. Reads go through orders.sql.
 // Cash is confirmed on entry and carries no Slip (slip NULL).
 func (q *Queries) InsertCashPayment(ctx context.Context, arg InsertCashPaymentParams) error {
 	_, err := q.db.ExecContext(ctx, insertCashPayment,

@@ -32,8 +32,7 @@ func init() {
 
 // The only test seam: the real router over HTTPS (Secure cookies need TLS) with a temp SQLite
 // file, real migrations and a temp DATA_DIR. Fakes: Verifier and clock.
-// Feature tickets add fixtures as methods in their own fixtures_<feature>_test.go file and never
-// edit this file.
+// Fixtures live in fixtures_<feature>_test.go files.
 
 const (
 	basePath  = "/mmtc34" // tests run under a prefix by default, so prefix bugs fail tests

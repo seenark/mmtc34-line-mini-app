@@ -79,7 +79,7 @@ func (s *Server) exportCSV(kind string) gin.HandlerFunc {
 
 // defuseFormula stops spreadsheets running user-typed text (print names, nicknames, addresses) as a formula.
 func defuseFormula(cell string) string {
-	if cell != "" && strings.ContainsRune("=+-@", rune(cell[0])) {
+	if cell != "" && strings.ContainsRune("=+-@\t\r", rune(cell[0])) {
 		return "'" + cell
 	}
 	return cell

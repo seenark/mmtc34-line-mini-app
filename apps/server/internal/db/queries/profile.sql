@@ -1,4 +1,3 @@
--- Owned by ticket .11.
 
 -- name: UpdateMemberProfile :one
 UPDATE members

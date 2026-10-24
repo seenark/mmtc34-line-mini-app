@@ -115,16 +115,12 @@ func (s *Server) campaignDetail(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	opts, err := s.q.ListOptions(c.Request.Context(), id)
+	opts, err := s.campaignOptions(c.Request.Context(), s.q, id)
 	if err != nil {
 		fail(c, err)
 		return
 	}
-	out := api.CampaignDetail{Campaign: s.toAPICampaign(row), Options: make([]api.Option, len(opts))}
-	for i, o := range opts {
-		out.Options[i] = toAPIOption(o)
-	}
-	c.JSON(http.StatusOK, out)
+	c.JSON(http.StatusOK, api.CampaignDetail{Campaign: s.toAPICampaign(row), Options: opts})
 }
 
 // bindCampaign decodes, validates and checks image names. ok=false means the response is written.

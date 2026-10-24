@@ -66,7 +66,6 @@ func (q *Queries) SetMemberRole(ctx context.Context, arg SetMemberRoleParams) (M
 }
 
 const updateMemberProfile = `-- name: UpdateMemberProfile :one
-
 UPDATE members
 SET cohort = ?1, nickname = ?2, real_name = ?3,
     address = ?4, phone = ?5
@@ -83,7 +82,6 @@ type UpdateMemberProfileParams struct {
 	ID       int64
 }
 
-// Owned by ticket .11.
 func (q *Queries) UpdateMemberProfile(ctx context.Context, arg UpdateMemberProfileParams) (Member, error) {
 	row := q.db.QueryRowContext(ctx, updateMemberProfile,
 		arg.Cohort,

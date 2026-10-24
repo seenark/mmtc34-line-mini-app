@@ -75,7 +75,7 @@ func (s *Server) uploadImage(c *gin.Context) {
 
 func (s *Server) readImage(c *gin.Context) {
 	name := c.Param("name")
-	if !s.imageExists(name) || name == "" {
+	if !s.imageExists(name) {
 		fail(c, &domain.Error{Kind: domain.NotFound, Msg: "ไม่พบข้อมูล"})
 		return
 	}
