@@ -1,0 +1,151 @@
+import { Button } from "@mmtc34/ui/components/button";
+import { Input } from "@mmtc34/ui/components/input";
+import { Textarea } from "@mmtc34/ui/components/textarea";
+import { useState } from "react";
+
+import {
+  type Campaign,
+  CampaignClosed,
+  CampaignDonation,
+  CampaignDraft,
+  CampaignEvent,
+  type CampaignInput,
+  CampaignMerch,
+  CampaignOpen,
+} from "@/api/types.gen";
+
+import { Field, selectClass } from "./field";
+import { ImageField } from "./image-field";
+
+const types = [
+  { value: CampaignMerch, label: "สินค้า" },
+  { value: CampaignDonation, label: "บริจาค" },
+  { value: CampaignEvent, label: "กิจกรรม" },
+];
+
+const statuses = [
+  { value: CampaignDraft, label: "ฉบับร่าง (สมาชิกไม่เห็น)" },
+  { value: CampaignOpen, label: "เปิดรับ" },
+  { value: CampaignClosed, label: "ปิดรับ" },
+];
+
+/** `datetime-local` wants local wall time without a zone. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
+
+/** Shared by create and edit; `initial` unset = blank draft. */
+export function CampaignForm(props: {
+  initial?: Campaign;
+  submitLabel: string;
+  pending: boolean;
+  error?: string;
+  onSubmit: (input: CampaignInput) => void;
+}) {
+  const c = props.initial;
+  const [coverImage, setCoverImage] = useState(c?.coverImage ?? "");
+  const [qrImage, setQrImage] = useState(c?.qrImage ?? "");
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const f = new FormData(e.currentTarget);
+        const text = (name: string) => String(f.get(name) ?? "").trim();
+        const closeAt = text("closeAt");
+        props.onSubmit({
+          type: text("type"),
+          title: text("title"),
+          description: text("description"),
+          coverImage,
+          bankName: text("bankName"),
+          bankAccountNo: text("bankAccountNo"),
+          bankAccountName: text("bankAccountName"),
+          qrImage,
+          status: text("status"),
+          closeAt: closeAt ? new Date(closeAt).toISOString() : null,
+        });
+      }}
+    >
+      <Field label="ประเภท" required>
+        <select
+          id="type"
+          name="type"
+          className={selectClass}
+          defaultValue={c?.type ?? CampaignMerch}
+        >
+          {types.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="ชื่อแคมเปญ" required>
+        <Input id="title" name="title" required defaultValue={c?.title} />
+      </Field>
+      <Field label="รายละเอียด">
+        <Textarea
+          id="description"
+          name="description"
+          defaultValue={c?.description}
+        />
+      </Field>
+      <ImageField label="รูปปก" value={coverImage} onChange={setCoverImage} />
+      <Field label="ธนาคาร">
+        <Input id="bankName" name="bankName" defaultValue={c?.bankName} />
+      </Field>
+      <Field label="เลขที่บัญชี">
+        <Input
+          id="bankAccountNo"
+          name="bankAccountNo"
+          inputMode="numeric"
+          defaultValue={c?.bankAccountNo}
+        />
+      </Field>
+      <Field label="ชื่อบัญชี">
+        <Input
+          id="bankAccountName"
+          name="bankAccountName"
+          defaultValue={c?.bankAccountName}
+        />
+      </Field>
+      <ImageField label="QR รับเงิน" value={qrImage} onChange={setQrImage} />
+      <Field label="สถานะ" required>
+        <select
+          id="status"
+          name="status"
+          className={selectClass}
+          defaultValue={c?.status ?? CampaignDraft}
+        >
+          {statuses.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="ปิดรับอัตโนมัติเมื่อ (เว้นว่างได้)">
+        <Input
+          id="closeAt"
+          name="closeAt"
+          type="datetime-local"
+          defaultValue={toLocalInput(c?.closeAt ?? null)}
+        />
+      </Field>
+      {props.error && (
+        <p role="alert" className="text-destructive text-sm">
+          {props.error}
+        </p>
+      )}
+      <Button type="submit" size="lg" disabled={props.pending}>
+        {props.submitLabel}
+      </Button>
+    </form>
+  );
+}

@@ -1,9 +1,10 @@
+import liff from "@line/liff";
 import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
 import { Label } from "@mmtc34/ui/components/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { enforceStage, errorText, meQuery } from "@/api/me";
 import { configQuery, devSignIn, signIn } from "@/lib/liff";
@@ -28,6 +29,12 @@ function Login() {
       await navigate({ to: "/" });
     },
   });
+
+  // isInClient is a user-agent check that works before liff.init (which signIn runs).
+  const { mutate } = login;
+  useEffect(() => {
+    if (!config.devLogin && liff.isInClient()) mutate();
+  }, [config.devLogin, mutate]);
 
   return (
     <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">

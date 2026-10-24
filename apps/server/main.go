@@ -2,8 +2,10 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,7 +28,27 @@ func main() {
 	}
 }
 
+// runSeed needs only DATA_DIR, not the full server environment.
+func runSeed() error {
+	dir := cmp.Or(os.Getenv("DATA_DIR"), "data")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	sqlDB, err := db.Open(filepath.Join(dir, "app.db"))
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+	return db.Seed(context.Background(), sqlDB)
+}
+
 func run() error {
+	if len(os.Args) > 1 {
+		if os.Args[1] != "seed" {
+			return fmt.Errorf("unknown command %q (only: seed)", os.Args[1])
+		}
+		return runSeed()
+	}
 	cfg, err := server.ConfigFromEnv()
 	if err != nil {
 		return err

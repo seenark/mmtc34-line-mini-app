@@ -25,6 +25,11 @@ dir = "apps/server"
 env = { DEV_LOGIN = "1", DATA_DIR = "./data", SESSION_SECRET = "dev-secret-dev-secret-dev-secret-00", PORT = "8080" }
 run = "go run ."
 
+[tasks.seed]
+dir = "apps/server"
+env = { DATA_DIR = "./data" }
+run = "go run . seed"
+
 [tasks."dev:web"]
 depends = ["gen:types"]
 dir = "apps/web"
