@@ -77,9 +77,10 @@ func (s *Server) exportCSV(kind string) gin.HandlerFunc {
 	}
 }
 
-// defuseFormula stops spreadsheets running user-typed text (print names, nicknames, addresses) as a formula.
+// defuseFormula stops spreadsheets running user-typed text (print names, nicknames, addresses) as a
+// formula. Leading tab/CR need no case: every text input is trimmed at the HTTP boundary.
 func defuseFormula(cell string) string {
-	if cell != "" && strings.ContainsRune("=+-@\t\r", rune(cell[0])) {
+	if cell != "" && strings.ContainsRune("=+-@", rune(cell[0])) {
 		return "'" + cell
 	}
 	return cell

@@ -159,6 +159,35 @@ func TestBootstrapLoginPromotesExistingMember(t *testing.T) {
 	Equal(t, m.Status, api.MemberApproved)
 }
 
+func TestProductionLoginSetsSecureCookie(t *testing.T) {
+	h := New(t, func(c *server.Config) { c.DevLogin = false })
+	c := h.Anonymous()
+
+	r := c.POST("/api/auth/line", api.LineLoginInput{IDToken: "ok:U-production"}).Status(204)
+	cookies := (&http.Response{Header: r.Header}).Cookies()
+	var session *http.Cookie
+	for _, cookie := range cookies {
+		if cookie.Name == "mmtc34_session" {
+			session = cookie
+			break
+		}
+	}
+	if session == nil {
+		t.Fatal("expected mmtc34_session cookie")
+	}
+	if !session.Secure {
+		t.Error("expected session cookie to be Secure")
+	}
+	if !session.HttpOnly {
+		t.Error("expected session cookie to be HttpOnly")
+	}
+	if session.SameSite != http.SameSiteLaxMode {
+		t.Errorf("expected SameSite=Lax, got %v", session.SameSite)
+	}
+
+	c.POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-production"}).Status(404)
+}
+
 func TestDevLoginIs404WhenOff(t *testing.T) {
 	h := New(t, func(c *server.Config) { c.DevLogin = false })
 	c := h.Anonymous()

@@ -471,22 +471,23 @@ a single DB connection, integrator-edited route lists, and hand-written nav link
 
 ### Open questions and risks
 
-- Spec says an Admin may order on behalf in a closed Campaign, and that unpaid Orders in a closed
-  Campaign read cancelled. Taken literally, the on-behalf Order reads cancelled the moment it is
-  made. This design exempts Orders with `placed_by` set. Is that the intended reading?
-- `Order.Money` treats an effectively cancelled Order as owing nothing, so a closed-unpaid Order
-  shows Balance 0 and a cancelled paid Order shows negative (refund due). The spec formula has no
-  such term. Accept?
-- Cash is refused while a Slip is pending review (review it first). Acceptable, or should cash
-  auto-reject the pending Slip?
+Built as the orchestrator's default; the owner has not confirmed these yet:
+
+- An Order an Admin places on behalf (`placedByAdmin`) never reads cancelled when the Campaign
+  closes, including one placed while the Campaign was still open. Admins cancel those explicitly.
+- A cancelled Order (stored or effective) owes nothing for its Items, so a closed-unpaid Order shows
+  Balance 0 and a cancelled paid Order shows a negative Balance (refund due).
+- Cash is refused while a Slip is pending review, and refused when it exceeds the Balance.
 - Admin edit keeps captured prices only for Items sent back with their `id`; a re-added line takes
-  the current price. OK?
-- Verify in deployment that Cloudflare Tunnel + gateway pass multipart bodies up to 5 MB and the
-  `Path=/mmtc34` cookie (spec "Further notes").
-- `spa/dist/.keep` survives `emptyOutDir` only because `public/.keep` is copied back. Subtle; a
-  `go:embed` of a missing directory is a compile error, so the failure is loud if it breaks.
+  the current price.
 
-### Next implementation step
+Risks still open:
 
-Ticket .1: `00001_init.sql`, `db.Open`, `server.New` with `routes.go` + empty mount files, `spa.go`,
-and `harness_test.go` with one test hitting `GET /mmtc34/api/config` over TLS.
+- A repeated partial cash request or a repeated Adjustment is recorded twice. The web disables the
+  button while a request is in flight; the server has no replay protection.
+- The real LIFF login and LINE ID-token verification have only run against a fake verifier and
+  dev login. Check them on a real LINE channel before launch.
+- Verify in deployment that Cloudflare Tunnel and the gateway pass multipart bodies up to 6 MB and
+  keep the `Path=/mmtc34` cookie.
+- Other apps on the same hostname are same-origin and can call this API with the user's cookie.
+  Only a separate hostname removes that.
