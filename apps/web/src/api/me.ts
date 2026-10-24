@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-query";
 import { redirect, useNavigate } from "@tanstack/react-router";
 
+import { clearAllCarts } from "@/lib/cart";
+
 import { ApiError, api } from "./client";
 import {
   type Me,
@@ -79,6 +81,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api<void>("POST", "/auth/logout"),
     onSuccess: async () => {
+      clearAllCarts();
       qc.clear();
       await navigate({ to: "/login" });
     },

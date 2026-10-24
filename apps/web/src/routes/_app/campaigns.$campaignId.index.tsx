@@ -2,9 +2,12 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { campaignQuery } from "@/api/campaigns";
-import { CampaignClosed } from "@/api/types.gen";
+import { CampaignOpen } from "@/api/types.gen";
 import { BankDetails } from "@/components/campaign/bank-details";
 import { OptionCard } from "@/components/campaign/option-card";
+import { AddToCart } from "@/components/order/add-to-cart";
+import { CartBar } from "@/components/order/cart-bar";
+import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/")({
   staticData: {
@@ -20,9 +23,11 @@ function CampaignDetail() {
   const {
     data: { campaign, options },
   } = useSuspenseQuery(campaignQuery(campaignId));
+  const cart = useCart(campaignId);
+  const open = campaign.status === CampaignOpen;
   return (
     <div className="flex flex-col gap-4">
-      {campaign.status === CampaignClosed && (
+      {!open && (
         <p role="status" className="bg-muted p-3 text-sm font-medium">
           ปิดรับแล้ว ติดต่อแอดมิน
         </p>
@@ -33,11 +38,16 @@ function CampaignDetail() {
       <ul className="flex flex-col gap-3">
         {options.map((o) => (
           <li key={o.id}>
-            <OptionCard option={o} />
+            <OptionCard option={o}>
+              {open && <AddToCart option={o} onAdd={cart.add} />}
+            </OptionCard>
           </li>
         ))}
       </ul>
       <BankDetails campaign={campaign} />
+      {open && (
+        <CartBar campaignId={campaignId} options={options} lines={cart.lines} />
+      )}
     </div>
   );
 }

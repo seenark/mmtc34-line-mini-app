@@ -1,6 +1,8 @@
 import { type UseQueryOptions, useQuery } from "@tanstack/react-query";
 import { type AnyRoute, Link, useRouter } from "@tanstack/react-router";
 
+import type { OrderActions } from "@/api/types.gen";
+
 // Navigation is derived from the routes themselves: a route file declares
 //   staticData: { nav: { slot: "admin", label: "ตรวจสลิป", order: 20, badge: pendingSlipCount } }
 // and the layout for that slot renders <NavSlot slot="admin" />. No hand-kept menu list exists,
@@ -20,7 +22,7 @@ export interface NavEntry {
   order: number;
   badge?: UseQueryOptions<number>; // e.g. pending Slip count
   /** orderAction only: shown when order.actions[when] is true (the server's state machine decides). */
-  when?: string;
+  when?: keyof OrderActions;
 }
 
 declare module "@tanstack/react-router" {
@@ -33,7 +35,7 @@ declare module "@tanstack/react-router" {
 export function NavSlot(props: {
   slot: NavSlotName;
   params?: Record<string, string>;
-  actions?: Record<string, boolean>;
+  actions?: OrderActions;
 }) {
   const { routesById } = useRouter();
   const routes: AnyRoute[] = Object.values(routesById);
