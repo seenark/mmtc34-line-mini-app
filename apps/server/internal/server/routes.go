@@ -16,9 +16,9 @@ type routes struct {
 func (s *Server) mount(api *gin.RouterGroup) {
 	r := routes{
 		public: api,
-		self:   api.Group(""),
-		member: api.Group(""),
-		admin:  api.Group("/admin"),
+		self:   api.Group("", s.requireSession),
+		member: api.Group("", s.requireSession, s.requireApproved),
+		admin:  api.Group("/admin", s.requireSession, s.requireAdmin),
 	}
 	s.mountConfig(r)      // .1  server.go
 	s.mountAuth(r)        // .2  auth.go

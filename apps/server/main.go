@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/db"
+	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/line"
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/server"
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/spa"
 )
@@ -42,7 +43,12 @@ func run() error {
 	}
 	defer sqlDB.Close()
 
-	handler, err := server.New(server.Deps{Config: cfg, DB: sqlDB, Now: time.Now})
+	handler, err := server.New(server.Deps{
+		Config: cfg,
+		DB:     sqlDB,
+		Verify: line.Client{ChannelID: cfg.LineChannelID},
+		Now:    time.Now,
+	})
 	if err != nil {
 		return err
 	}
