@@ -1,7 +1,13 @@
 .audit/
 .arena/
 node_modules/
-dist/
+apps/web/dist/
+apps/server/internal/spa/dist/*
+!apps/server/internal/spa/dist/robots.txt
+apps/web/src/api/types.gen.ts
+apps/web/src/routeTree.gen.ts
+apps/server/data/
+bin/
 data/
 .env
 *.db

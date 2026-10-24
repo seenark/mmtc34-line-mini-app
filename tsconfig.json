@@ -1,0 +1,3 @@
+{
+  "extends": "@mmtc34/config/tsconfig.base.json"
+}

@@ -1,0 +1,8 @@
+**/node_modules
+**/data
+.git
+.beads
+.audit
+arena
+bin
+.env
