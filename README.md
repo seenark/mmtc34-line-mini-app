@@ -20,7 +20,7 @@ mise run seed     # create ./apps/server/data/app.db with the jersey 2569 Campai
 mise run dev      # Go server on :8080 with DEV_LOGIN on, Vite on :3001
 ```
 
-Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes any LINE userId instead of LIFF. Set `ADMIN_LINE_USER_IDS` before `mise run dev` to make a userId an Admin.
+Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes any LINE userId instead of LIFF. The dev server also enables the Super Admin as `admin` / `dev-super-admin-pw`; sign in at `/mmtc34/admin-login`, approve Applicants and promote them to Admin.
 
 | Task | What it runs |
 | --- | --- |
@@ -38,7 +38,8 @@ Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes 
 | `LIFF_ID` | yes, unless `DEV_LOGIN` | LIFF app ID served to the browser. |
 | `LINE_CHANNEL_ID` | yes, unless `DEV_LOGIN` | Channel ID used to verify LIFF ID tokens with LINE. |
 | `SESSION_SECRET` | yes | At least 32 bytes; signs the session cookie. |
-| `ADMIN_LINE_USER_IDS` | no | Comma-separated LINE userIds that become Admins on login. |
+| `SUPER_ADMIN_USERNAME` | no, default `admin` | Username of the Super Admin account. |
+| `SUPER_ADMIN_PASSWORD` | yes, to bootstrap | At least 12 characters. Enables the Super Admin login at `${BASE_PATH}/admin-login`; unset disables it. |
 | `DEV_LOGIN` | no, default off | Enables login by raw userId and non-Secure cookies. Never set it in production. |
 | `DATA_DIR` | no, default `data` (`/data` in Docker) | Holds `app.db` and uploaded images and Slips. |
 | `PORT` | no, default `8080` | Listen port. |
@@ -53,6 +54,14 @@ docker compose run --rm app seed   # once, only to load the example jersey Campa
 ```
 
 The gateway must forward `${BASE_PATH}` without stripping it. Backups are the host's job: snapshot the whole `/data` volume, or use `sqlite3 app.db .backup`, never a plain file copy while the app runs.
+
+### First Admin
+
+1. Open `https://<host>${BASE_PATH}/admin-login` in a normal browser and sign in with `SUPER_ADMIN_USERNAME` / `SUPER_ADMIN_PASSWORD`.
+2. Open the app in LINE with your own account and fill in the profile. You become an Applicant.
+3. As the Super Admin, go to สมาชิก → รออนุมัติ, approve yourself, then open your Member page → แก้ไข and set the role to แอดมิน.
+
+Promoted Admins can promote others too. The Super Admin cannot be demoted or deleted; to rotate its password, change `SUPER_ADMIN_PASSWORD` and `SESSION_SECRET` (the latter ends every open session).
 
 ## Adding shared UI primitives
 

@@ -87,6 +87,10 @@ func (s *Server) deleteMe(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if isSuperAdmin(m) {
+		fail(c, &domain.Error{Kind: domain.Conflict, Msg: "ลบบัญชีผู้ดูแลระบบหลักไม่ได้"})
+		return
+	}
 	ctx := c.Request.Context()
 	err := s.tx(ctx, func(q *db.Queries) error {
 		if m.Status == string(api.MemberApplicant) {
@@ -129,6 +133,9 @@ func (s *Server) setRole(c *gin.Context) {
 		}
 		if m.DeletedAt != nil {
 			return &domain.Error{Kind: domain.NotFound, Msg: "ไม่พบข้อมูล"}
+		}
+		if isSuperAdmin(m) {
+			return &domain.Error{Kind: domain.Conflict, Msg: "เปลี่ยนบทบาทผู้ดูแลระบบหลักไม่ได้"}
 		}
 		if m.Status != string(api.MemberApproved) {
 			return &domain.Error{Kind: domain.Conflict, Msg: "ต้องอนุมัติสมาชิกก่อนเปลี่ยนบทบาท"}

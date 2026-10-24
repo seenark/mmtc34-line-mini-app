@@ -13,7 +13,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -24,26 +26,28 @@ import (
 
 // Config is every environment setting. Parsed once in main (ConfigFromEnv); tests build it directly.
 type Config struct {
-	BasePath         string          // BASE_PATH, normalised "/mmtc34" (leading slash, no trailing)
-	DataDir          string          // DATA_DIR: app.db and files/{images,slips}
-	LiffID           string          // LIFF_ID, served by GET /api/config
-	LineChannelID    string          // LINE_CHANNEL_ID, used to verify ID tokens
-	SessionSecret    []byte          // SESSION_SECRET, >= 32 bytes
-	AdminLineUserIDs map[string]bool // ADMIN_LINE_USER_IDS, comma-separated
-	DevLogin         bool            // DEV_LOGIN, default false
-	Port             string          // PORT, default 8080
+	BasePath           string // BASE_PATH, normalised "/mmtc34" (leading slash, no trailing)
+	DataDir            string // DATA_DIR: app.db and files/{images,slips}
+	LiffID             string // LIFF_ID, served by GET /api/config
+	LineChannelID      string // LINE_CHANNEL_ID, used to verify ID tokens
+	SessionSecret      []byte // SESSION_SECRET, >= 32 bytes
+	SuperAdminUsername string // SUPER_ADMIN_USERNAME, default "admin"
+	SuperAdminPassword string // SUPER_ADMIN_PASSWORD, >= 12 characters; empty disables Super Admin login
+	DevLogin           bool   // DEV_LOGIN, default false
+	Port               string // PORT, default 8080
 }
 
 // ConfigFromEnv reads and validates the environment; any invalid value is a startup error.
 func ConfigFromEnv() (Config, error) {
 	cfg := Config{
-		BasePath:         "/" + strings.Trim(envOr("BASE_PATH", "/mmtc34"), "/"),
-		DataDir:          envOr("DATA_DIR", "data"),
-		LiffID:           os.Getenv("LIFF_ID"),
-		LineChannelID:    os.Getenv("LINE_CHANNEL_ID"),
-		SessionSecret:    []byte(os.Getenv("SESSION_SECRET")),
-		AdminLineUserIDs: map[string]bool{},
-		Port:             envOr("PORT", "8080"),
+		BasePath:           "/" + strings.Trim(envOr("BASE_PATH", "/mmtc34"), "/"),
+		DataDir:            envOr("DATA_DIR", "data"),
+		LiffID:             os.Getenv("LIFF_ID"),
+		LineChannelID:      os.Getenv("LINE_CHANNEL_ID"),
+		SessionSecret:      []byte(os.Getenv("SESSION_SECRET")),
+		SuperAdminUsername: envOr("SUPER_ADMIN_USERNAME", "admin"),
+		SuperAdminPassword: os.Getenv("SUPER_ADMIN_PASSWORD"),
+		Port:               envOr("PORT", "8080"),
 	}
 	if cfg.BasePath == "/" {
 		return Config{}, errors.New("BASE_PATH must not be empty")
@@ -51,10 +55,8 @@ func ConfigFromEnv() (Config, error) {
 	if len(cfg.SessionSecret) < 32 {
 		return Config{}, errors.New("SESSION_SECRET must be at least 32 bytes")
 	}
-	for _, id := range strings.Split(os.Getenv("ADMIN_LINE_USER_IDS"), ",") {
-		if id = strings.TrimSpace(id); id != "" {
-			cfg.AdminLineUserIDs[id] = true
-		}
+	if n := utf8.RuneCountInString(cfg.SuperAdminPassword); n > 0 && n < 12 {
+		return Config{}, errors.New("SUPER_ADMIN_PASSWORD must be at least 12 characters")
 	}
 	if v := os.Getenv("DEV_LOGIN"); v != "" {
 		dev, err := strconv.ParseBool(v)
@@ -95,6 +97,9 @@ type Server struct {
 	q      *db.Queries
 	verify Verifier
 	now    func() time.Time
+
+	adminLoginMu    sync.Mutex
+	adminLoginFails []time.Time // failed Super Admin attempts inside the last adminLoginWindow
 }
 
 // New builds the full router: API under <BasePath>/api, SPA for every other path under
@@ -143,6 +148,6 @@ func (s *Server) tx(ctx context.Context, fn func(q *db.Queries) error) error {
 
 func (s *Server) mountConfig(r routes) {
 	r.public.GET("/config", func(c *gin.Context) {
-		c.JSON(http.StatusOK, api.Config{LiffID: s.cfg.LiffID, DevLogin: s.cfg.DevLogin})
+		c.JSON(http.StatusOK, api.Config{LiffID: s.cfg.LiffID, DevLogin: s.cfg.DevLogin, AdminLogin: s.cfg.SuperAdminPassword != ""})
 	})
 }

@@ -15,8 +15,10 @@ VALUES (sqlc.arg(line_user_id), sqlc.arg(status), sqlc.arg(role), sqlc.arg(cohor
         sqlc.arg(real_name), sqlc.arg(address), sqlc.arg(phone), sqlc.arg(now))
 RETURNING *;
 
--- name: PromoteBootstrapAdmin :exec
-UPDATE members SET status = 'approved', role = 'admin' WHERE line_user_id = sqlc.arg(line_user_id);
+-- name: UpsertSuperAdmin :exec
+INSERT INTO members (line_user_id, status, role, nickname, created_at)
+VALUES (sqlc.arg(line_user_id), 'approved', 'admin', sqlc.arg(nickname), sqlc.arg(now))
+ON CONFLICT (line_user_id) DO UPDATE SET status = 'approved', role = 'admin';
 
 -- name: ApproveMember :one
 UPDATE members SET status = 'approved' WHERE id = sqlc.arg(id) AND deleted_at IS NULL RETURNING *;

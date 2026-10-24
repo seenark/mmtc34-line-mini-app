@@ -176,11 +176,19 @@ func (q *Queries) ListMembers(ctx context.Context, status string) ([]Member, err
 	return items, nil
 }
 
-const promoteBootstrapAdmin = `-- name: PromoteBootstrapAdmin :exec
-UPDATE members SET status = 'approved', role = 'admin' WHERE line_user_id = ?1
+const upsertSuperAdmin = `-- name: UpsertSuperAdmin :exec
+INSERT INTO members (line_user_id, status, role, nickname, created_at)
+VALUES (?1, 'approved', 'admin', ?2, ?3)
+ON CONFLICT (line_user_id) DO UPDATE SET status = 'approved', role = 'admin'
 `
 
-func (q *Queries) PromoteBootstrapAdmin(ctx context.Context, lineUserID *string) error {
-	_, err := q.db.ExecContext(ctx, promoteBootstrapAdmin, lineUserID)
+type UpsertSuperAdminParams struct {
+	LineUserID *string
+	Nickname   string
+	Now        string
+}
+
+func (q *Queries) UpsertSuperAdmin(ctx context.Context, arg UpsertSuperAdminParams) error {
+	_, err := q.db.ExecContext(ctx, upsertSuperAdmin, arg.LineUserID, arg.Nickname, arg.Now)
 	return err
 }

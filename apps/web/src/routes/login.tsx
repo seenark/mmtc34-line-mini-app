@@ -3,7 +3,7 @@ import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
 import { Label } from "@mmtc34/ui/components/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { enforceStage, errorText, meQuery } from "@/api/me";
@@ -67,6 +67,11 @@ function Login() {
           {config.devLogin ? "เข้าสู่ระบบ" : "เข้าสู่ระบบด้วย LINE"}
         </Button>
       </form>
+      {config.adminLogin && (
+        <Link to="/admin-login" className="text-center text-sm underline">
+          เข้าสู่ระบบผู้ดูแลระบบ
+        </Link>
+      )}
     </main>
   );
 }

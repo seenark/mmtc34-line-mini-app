@@ -35,7 +35,14 @@ function MemberDetail() {
       >
         ← สมาชิก
       </Link>
-      <h1 className="text-2xl font-semibold">{m.nickname}</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        {m.nickname}
+        {m.superAdmin && (
+          <span className="bg-muted text-muted-foreground px-2 py-0.5 text-xs font-normal">
+            ผู้ดูแลระบบหลัก
+          </span>
+        )}
+      </h1>
       <Card>
         <CardContent>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

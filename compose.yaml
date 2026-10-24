@@ -12,7 +12,8 @@ services:
       LINE_CHANNEL_ID: ${LINE_CHANNEL_ID}
       LIFF_ID: ${LIFF_ID}
       SESSION_SECRET: ${SESSION_SECRET}
-      ADMIN_LINE_USER_IDS: ${ADMIN_LINE_USER_IDS}
+      SUPER_ADMIN_USERNAME: ${SUPER_ADMIN_USERNAME:-admin}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
     volumes:
       - data:/data # app.db (+ -wal/-shm) and files/{images,slips}
 

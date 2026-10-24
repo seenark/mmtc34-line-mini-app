@@ -134,31 +134,6 @@ func TestRejectingApprovedMemberIs409(t *testing.T) {
 	h.Admin().POST(fmt.Sprintf("/api/admin/members/%d/reject", id), nil).Status(409)
 }
 
-func TestBootstrapIDOnboardsAsApprovedAdmin(t *testing.T) {
-	h := New(t)
-
-	admin := h.Admin()
-
-	m := admin.Me().Member
-	Equal(t, m.Status, api.MemberApproved)
-	Equal(t, m.Role, api.RoleAdmin)
-	admin.GET("/api/admin/members").Status(200)
-}
-
-func TestBootstrapLoginPromotesExistingMember(t *testing.T) {
-	adminIDs := map[string]bool{} // shared with the server's Config, so the id can be listed after onboarding
-	h := New(t, func(c *server.Config) { c.AdminLineUserIDs = adminIDs })
-	boss := h.Applicant("boss")
-	Equal(t, boss.Me().Member.Role, api.RoleMember)
-
-	adminIDs["U-boss"] = true
-	boss.POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-boss"}).Status(204)
-
-	m := boss.Me().Member
-	Equal(t, m.Role, api.RoleAdmin)
-	Equal(t, m.Status, api.MemberApproved)
-}
-
 func TestProductionLoginSetsSecureCookie(t *testing.T) {
 	h := New(t, func(c *server.Config) { c.DevLogin = false })
 	c := h.Anonymous()
@@ -192,7 +167,7 @@ func TestDevLoginIs404WhenOff(t *testing.T) {
 	h := New(t, func(c *server.Config) { c.DevLogin = false })
 	c := h.Anonymous()
 
-	c.POST("/api/auth/dev", api.DevLoginInput{LineUserID: adminLine}).Status(404)
+	c.POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-admin"}).Status(404)
 
 	c.GET("/api/me").Status(401)
 }
@@ -201,7 +176,7 @@ func TestTamperedCookieIs401(t *testing.T) {
 	h := New(t)
 	login := h.Anonymous().POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-nok"}).Status(204)
 	parts := strings.Split((&http.Response{Header: login.Header}).Cookies()[0].Value, ".")
-	parts[0] = base64.RawURLEncoding.EncodeToString([]byte(adminLine))
+	parts[0] = base64.RawURLEncoding.EncodeToString([]byte("superadmin"))
 
 	forged := h.Anonymous()
 	u, _ := url.Parse(h.srv.URL + basePath)

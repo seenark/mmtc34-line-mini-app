@@ -96,11 +96,13 @@ function SponsorForm(props: {
               defaultValue={p?.memberId ?? ""}
             >
               <option value="">ไม่ระบุ</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.nickname}
-                </option>
-              ))}
+              {members
+                .filter((m) => !m.superAdmin)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nickname}
+                  </option>
+                ))}
             </select>
           </Field>
           <Field label="ลำดับการแสดง">

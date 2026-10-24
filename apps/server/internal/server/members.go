@@ -20,17 +20,22 @@ func (s *Server) mountMembers(r routes) {
 // memberDTO is the only db.Member -> api.Member mapping.
 func memberDTO(m db.Member) api.Member {
 	return api.Member{
-		ID:       m.ID,
-		Linked:   m.LineUserID != nil,
-		Status:   api.MemberStatus(m.Status),
-		Role:     api.Role(m.Role),
-		Cohort:   m.Cohort,
-		Nickname: m.Nickname,
-		RealName: m.RealName,
-		Address:  m.Address,
-		Phone:    m.Phone,
-		Deleted:  m.DeletedAt != nil,
+		ID:         m.ID,
+		Linked:     m.LineUserID != nil,
+		Status:     api.MemberStatus(m.Status),
+		Role:       api.Role(m.Role),
+		Cohort:     m.Cohort,
+		Nickname:   m.Nickname,
+		RealName:   m.RealName,
+		Address:    m.Address,
+		Phone:      m.Phone,
+		Deleted:    m.DeletedAt != nil,
+		SuperAdmin: isSuperAdmin(m),
 	}
+}
+
+func isSuperAdmin(m db.Member) bool {
+	return m.LineUserID != nil && *m.LineUserID == domain.SuperAdminLineUserID
 }
 
 func (s *Server) listMembers(c *gin.Context) {

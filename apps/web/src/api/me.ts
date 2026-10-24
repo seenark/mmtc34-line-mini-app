@@ -10,6 +10,7 @@ import { clearAllCarts } from "@/lib/cart";
 
 import { ApiError, api } from "./client";
 import {
+  type AdminLoginInput,
   type Me,
   type Member,
   MemberApproved,
@@ -61,6 +62,14 @@ export async function requireApproved(
   if (stage !== "/" || !me?.member) throw redirect({ to: stage });
   if (opts?.admin && me.member.role !== RoleAdmin) throw redirect({ to: "/" });
   return me.member;
+}
+
+/** Super Admin login (server SUPER_ADMIN_PASSWORD set): username + password, no LINE. */
+export async function adminSignIn(username: string, password: string) {
+  await api<void>("POST", "/auth/admin", {
+    username,
+    password,
+  } satisfies AdminLoginInput);
 }
 
 export function useOnboard() {

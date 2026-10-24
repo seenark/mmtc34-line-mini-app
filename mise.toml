@@ -22,7 +22,7 @@ depends = ["gen:sqlc", "gen:types"]
 
 [tasks."dev:server"]
 dir = "apps/server"
-env = { DEV_LOGIN = "1", DATA_DIR = "./data", SESSION_SECRET = "dev-secret-dev-secret-dev-secret-00", PORT = "8080" }
+env = { DEV_LOGIN = "1", DATA_DIR = "./data", SESSION_SECRET = "dev-secret-dev-secret-dev-secret-00", PORT = "8080", SUPER_ADMIN_PASSWORD = "dev-super-admin-pw" }
 run = "go run ."
 
 [tasks.seed]

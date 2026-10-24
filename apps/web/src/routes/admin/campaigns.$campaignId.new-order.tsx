@@ -42,13 +42,15 @@ function NewOrder() {
           onChange={(e) => setMemberId(e.target.value)}
         >
           <option value="">เลือกสมาชิก</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nickname}
-              {m.realName && ` (${m.realName})`}
-              {!m.linked && " · ไม่มี LINE"}
-            </option>
-          ))}
+          {members
+            .filter((m) => !m.superAdmin)
+            .map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nickname}
+                {m.realName && ` (${m.realName})`}
+                {!m.linked && " · ไม่มี LINE"}
+              </option>
+            ))}
         </select>
       </Field>
       {member && (

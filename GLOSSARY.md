@@ -20,6 +20,10 @@ _Avoid_: Guest, placeholder, offline user
 A Member who may create Campaigns and edit any data at any time. There can be several.
 _Avoid_: Owner, organiser, treasurer
 
+**Super Admin**:
+The one Admin account defined in the server configuration and signed into with a password, not LINE. It exists to approve the first people and promote Admins; it cannot be demoted or deleted.
+_Avoid_: Root, owner, bootstrap admin
+
 **Cohort**:
 The class year (รุ่น) a Member says they belong to. Shown only; it grants nothing.
 _Avoid_: Group, class, batch

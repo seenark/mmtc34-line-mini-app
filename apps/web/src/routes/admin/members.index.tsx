@@ -70,7 +70,14 @@ function Members() {
                   params={{ memberId: String(m.id) }}
                   className="min-w-0 flex-1"
                 >
-                  <div className="font-medium">{m.nickname}</div>
+                  <div className="flex items-center gap-2 font-medium">
+                    {m.nickname}
+                    {m.superAdmin && (
+                      <span className="bg-muted text-muted-foreground px-2 py-0.5 text-xs font-normal">
+                        ผู้ดูแลระบบหลัก
+                      </span>
+                    )}
+                  </div>
                   <div className="text-muted-foreground truncate text-sm">
                     {m.realName} · รุ่น {m.cohort}
                   </div>

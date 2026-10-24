@@ -9,8 +9,25 @@ import (
 // Fixtures go through the real HTTP API (dev login, onboarding, approval) and assert each status.
 // They are idempotent: asking for the same person again signs in again instead of onboarding twice.
 
-// Admin is the bootstrap Admin, signed in and onboarded.
-func (h *H) Admin() *Client { return h.signIn(adminLine, "admin") }
+const superAdminPassword = "test-super-admin-password"
+
+// SuperAdmin signs in with the env username and password.
+func (h *H) SuperAdmin() *Client {
+	c := h.Anonymous()
+	c.POST("/api/auth/admin", api.AdminLoginInput{Username: "admin", Password: superAdminPassword}).Status(204)
+	return c
+}
+
+// Admin is the LINE user "U-admin", onboarded and promoted by the Super Admin.
+func (h *H) Admin() *Client {
+	c := h.signIn("U-admin", "admin")
+	if m := c.Me().Member; m.Role != api.RoleAdmin {
+		boss := h.SuperAdmin()
+		boss.POST(fmt.Sprintf("/api/admin/members/%d/approve", m.ID), nil).Status(200)
+		boss.PUT(fmt.Sprintf("/api/admin/members/%d/role", m.ID), api.RoleInput{Role: api.RoleAdmin}).Status(200)
+	}
+	return c
+}
 
 // Applicant signs in as "U-<nick>" and onboards; not yet approved.
 func (h *H) Applicant(nick string) *Client { return h.signIn("U-"+nick, nick) }

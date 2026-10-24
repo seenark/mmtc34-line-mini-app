@@ -46,7 +46,9 @@ function EditMember() {
           </p>
         )}
       </section>
-      <RoleToggle memberId={memberId} role={m.role} nickname={m.nickname} />
+      {!m.superAdmin && (
+        <RoleToggle memberId={memberId} role={m.role} nickname={m.nickname} />
+      )}
     </div>
   );
 }

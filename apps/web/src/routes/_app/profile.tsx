@@ -46,7 +46,7 @@ function Profile() {
       >
         ออกจากระบบ
       </Button>
-      <DeleteAccount />
+      {!me.member.superAdmin && <DeleteAccount />}
     </div>
   );
 }

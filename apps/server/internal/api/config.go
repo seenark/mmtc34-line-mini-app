@@ -1,8 +1,9 @@
 package api
 
 type Config struct {
-	LiffID   string `json:"liffId"`
-	DevLogin bool   `json:"devLogin"`
+	LiffID     string `json:"liffId"`
+	DevLogin   bool   `json:"devLogin"`
+	AdminLogin bool   `json:"adminLogin"` // Super Admin username + password login is enabled
 }
 
 // ErrorResponse is the body of every non-2xx JSON response. Error is Thai, shown verbatim.

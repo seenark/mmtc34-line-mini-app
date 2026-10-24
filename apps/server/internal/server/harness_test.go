@@ -35,9 +35,8 @@ func init() {
 // Fixtures live in fixtures_<feature>_test.go files.
 
 const (
-	basePath  = "/mmtc34" // tests run under a prefix by default, so prefix bugs fail tests
-	adminLine = "U-admin" // listed in ADMIN_LINE_USER_IDS
-	start     = "2026-11-01T10:00:00+07:00"
+	basePath = "/mmtc34" // tests run under a prefix by default, so prefix bugs fail tests
+	start    = "2026-11-01T10:00:00+07:00"
 )
 
 type H struct {
@@ -65,14 +64,15 @@ func New(t *testing.T, opts ...Option) *H {
 	t.Cleanup(func() { sqlDB.Close() })
 
 	cfg := server.Config{
-		BasePath:         basePath,
-		DataDir:          dir,
-		LiffID:           "test-liff-id",
-		LineChannelID:    "test-channel",
-		SessionSecret:    bytes.Repeat([]byte("k"), 32),
-		AdminLineUserIDs: map[string]bool{adminLine: true},
-		DevLogin:         true,
-		Port:             "0",
+		BasePath:           basePath,
+		DataDir:            dir,
+		LiffID:             "test-liff-id",
+		LineChannelID:      "test-channel",
+		SessionSecret:      bytes.Repeat([]byte("k"), 32),
+		SuperAdminUsername: "admin",
+		SuperAdminPassword: superAdminPassword,
+		DevLogin:           true,
+		Port:               "0",
 	}
 	for _, o := range opts {
 		o(&cfg)

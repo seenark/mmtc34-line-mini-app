@@ -6,13 +6,14 @@ import (
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/api"
 )
 
-func TestConfigEndpointServesLiffIDAndDevLogin(t *testing.T) {
+func TestConfigEndpointServesLiffIDAndLoginModes(t *testing.T) {
 	h := New(t)
 
 	cfg := As[api.Config](h.Anonymous().GET("/api/config").Status(200))
 
 	Equal(t, cfg.LiffID, "test-liff-id")
 	Equal(t, cfg.DevLogin, true)
+	Equal(t, cfg.AdminLogin, true)
 }
 
 func TestUnknownAPIPathIsJSON404(t *testing.T) {

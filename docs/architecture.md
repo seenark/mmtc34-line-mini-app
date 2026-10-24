@@ -110,7 +110,7 @@ internal/
                   rules table, Order.Decide(actor, ev), Order.Actions(actor)
     money.go      Order.Money() ← Total/Paid/Balance, the only one
     checkout.go   ValidateOrder → ValidOrder (unexported fields: only constructible by validation)
-    member.go     ValidateProfile, IsBootstrapAdmin
+    member.go     ValidateProfile, SuperAdminLineUserID (reserved "superadmin")
   db/         sqlc output + open.go (Open: pragmas + goose) + seed.go (Seed: embedded seed/*.sql)
     migrations/00001_init.sql     complete schema (sketch has it in full)
     queries/<feature>.sql         one per ticket → <feature>.sql.go
@@ -211,21 +211,25 @@ re-implemented in SQL.
 
 ## 4. Auth and session
 
-1. Web loads `GET /api/config` → `{liffId, devLogin}`.
+1. Web loads `GET /api/config` → `{liffId, devLogin, adminLogin}`.
 2. Normal: `liff.init({liffId})` (SDK ≥ 2.31.1); not logged in → `liff.login()`; `liff.getIDToken()`
    → `POST /api/auth/line {idToken}`. Dev (`devLogin`): form → `POST /api/auth/dev {lineUserId}`
    (route returns 404 when `DEV_LOGIN` is off).
 3. Server: `Verifier.Verify` (`line.Client`: form `id_token`, `client_id=LINE_CHANNEL_ID` to
-   `https://api.line.me/oauth2/v2.1/verify`; `sub` is the userId). Failure → 401. If the userId is in
-   `ADMIN_LINE_USER_IDS` and a Member row exists, it is set approved+admin.
-4. Cookie `mmtc34_session` = `b64url(userId).exp.b64url(HMAC-SHA256(SESSION_SECRET, userId.exp))`,
+   `https://api.line.me/oauth2/v2.1/verify`; `sub` is the userId). Failure → 401.
+4. Super Admin (ADR 0005): `POST /api/auth/admin {username, password}` checks
+   `SUPER_ADMIN_USERNAME`/`SUPER_ADMIN_PASSWORD` in constant time, at most 5 failures per minute
+   per process (then 429). Success upserts the Member row whose `line_user_id` is the reserved
+   `superadmin` (approved, admin) and sets the same cookie. LINE and dev login refuse that id.
+   Nobody can change the Super Admin's role or delete it. Other Admins are Members it promotes.
+5. Cookie `mmtc34_session` = `b64url(userId).exp.b64url(HMAC-SHA256(SESSION_SECRET, userId.exp))`,
    HttpOnly, SameSite=Lax, Path=`BASE_PATH`, Max-Age 30 d, Secure unless `DEV_LOGIN`.
-5. Every request under `self/member/admin`: `requireSession` parses the cookie and loads the Member
+6. Every request under `self/member/admin`: `requireSession` parses the cookie and loads the Member
    **by LINE userId**; `requireApproved`/`requireAdmin` gate on the fresh row. Role and approval
    changes, linking and deletion take effect on the next request.
-6. `GET /api/me` → `{lineUserId, member|null}`. Web routing: 401 → `/login`; `member == null` →
+7. `GET /api/me` → `{lineUserId, member|null}`. Web routing: 401 → `/login`; `member == null` →
    `/onboarding`; applicant → `/waiting`; approved → `_app`.
-7. `POST /api/me` onboards (Applicant, or approved Admin for a bootstrap userId).
+8. `POST /api/me` onboards an Applicant.
 
 Access groups (routes.go): `public` (config, auth) · `self` (me, onboard, edit/delete self) ·
 `member` (approved, not deleted) · `admin` (`/api/admin/*`).
@@ -300,7 +304,7 @@ Dockerfile: `types` (golang, `go install tygo`, `tygo generate`) → `web` (oven
 | Group | Method + path | Ticket |
 |---|---|---|
 | public | GET /config | .1 |
-| public | POST /auth/line, /auth/dev, /auth/logout | .2 |
+| public | POST /auth/line, /auth/dev, /auth/admin (Super Admin, ADR 0005), /auth/logout | .2 |
 | self | GET /me, POST /me | .2 |
 | self | PUT /me, DELETE /me | .11 |
 | member | GET /campaigns, /campaigns/:campaignId | .3 |

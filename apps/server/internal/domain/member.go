@@ -34,7 +34,6 @@ func ValidateProfile(in api.ProfileInput, req ProfileRequire) (api.ProfileInput,
 	return in, nil
 }
 
-// IsBootstrapAdmin: LINE userIds in ADMIN_LINE_USER_IDS become approved Admins on login/onboarding.
-func IsBootstrapAdmin(lineUserID string, adminIDs map[string]bool) bool {
-	return adminIDs[lineUserID]
-}
+// SuperAdminLineUserID is the reserved line_user_id of the env-configured Super Admin. Real LINE
+// userIds are "U" + 32 hex characters, so no LINE login can collide with it.
+const SuperAdminLineUserID = "superadmin"
