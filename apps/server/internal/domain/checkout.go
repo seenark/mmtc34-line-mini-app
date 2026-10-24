@@ -33,10 +33,17 @@ func (v ValidOrder) Ship() (name, address, phone string) {
 
 func (v ValidOrder) Items() []ValidItem { return v.items }
 
-// ValidateOrder is the checkout rule set, shared by Member checkout, Admin on-behalf checkout
-// and Admin edit. options are the Campaign's Options, so an unknown OptionID is rejected.
-// The first failure is returned with its 1-based Item index in the Thai message.
+// ValidateOrder is the checkout rule set for Member and Admin on-behalf checkout: every Item
+// takes the current Option price. options are the Campaign's Options, so an unknown OptionID is
+// rejected. The first failure is returned with its 1-based Item index in the Thai message.
 func ValidateOrder(options []api.Option, in api.OrderInput) (ValidOrder, error) {
+	return ValidateEdit(options, in, nil)
+}
+
+// ValidateEdit is ValidateOrder for Admin edit. kept holds the Order's existing Items by id: an
+// input Item whose ID matches one with the same Option keeps that captured unit price (and a
+// kept no-price Item keeps its amount); an ID that matches none is rejected.
+func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) (ValidOrder, error) {
 	bad := func(format string, args ...any) (ValidOrder, error) {
 		return ValidOrder{}, &Error{Kind: Invalid, Msg: fmt.Sprintf(format, args...)}
 	}
@@ -63,6 +70,14 @@ func ValidateOrder(options []api.Option, in api.OrderInput) (ValidOrder, error) 
 			return bad("รายการที่ %d: ไม่พบตัวเลือกนี้ในแคมเปญ", n)
 		}
 		opt := options[idx]
+		var old Item
+		same := false
+		if it.ID != nil {
+			if old, same = kept[*it.ID]; !same {
+				return bad("รายการที่ %d: ไม่พบรายการนี้ในคำสั่งซื้อ", n)
+			}
+			same = old.OptionID == opt.ID
+		}
 		vi := ValidItem{ID: it.ID, OptionID: opt.ID, Size: strings.TrimSpace(it.Size), Quantity: it.Quantity}
 		switch {
 		case len(opt.Sizes) > 0 && !slices.Contains(opt.Sizes, vi.Size):
@@ -86,12 +101,14 @@ func ValidateOrder(options []api.Option, in api.OrderInput) (ValidOrder, error) 
 		switch {
 		case opt.Price != nil && it.Amount != nil:
 			return bad("รายการที่ %d: ตัวเลือกนี้มีราคาคงที่ ไม่ต้องระบุจำนวนเงิน", n)
+		case opt.Price == nil && !same && (it.Amount == nil || *it.Amount <= 0):
+			return bad("รายการที่ %d: กรุณาระบุจำนวนเงินที่มากกว่า 0", n)
+		case opt.Price == nil && it.Quantity != 1:
+			return bad("รายการที่ %d: ตัวเลือกที่ระบุจำนวนเงินเองสั่งได้ครั้งละ 1 ชิ้น", n)
+		case same:
+			vi.UnitPrice = old.UnitPrice
 		case opt.Price != nil:
 			vi.UnitPrice = *opt.Price
-		case it.Amount == nil || *it.Amount <= 0:
-			return bad("รายการที่ %d: กรุณาระบุจำนวนเงินที่มากกว่า 0", n)
-		case it.Quantity != 1:
-			return bad("รายการที่ %d: ตัวเลือกที่ระบุจำนวนเงินเองสั่งได้ครั้งละ 1 ชิ้น", n)
 		default:
 			vi.UnitPrice = *it.Amount
 		}

@@ -33,9 +33,6 @@ var fileName = regexp.MustCompile(`^[0-9a-f]{32}\.(jpg|png|webp)$`)
 
 var extOf = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
-// errTooLarge is the one upload failure that is not a domain.Kind; failUpload answers it 413.
-var errTooLarge = errors.New("upload too large")
-
 func (s *Server) mountUploads(r routes) {
 	r.admin.POST("/images", s.uploadImage)
 	r.member.GET("/images/:name", s.readImage)
@@ -67,19 +64,10 @@ func (s *Server) requireImages(names ...string) error {
 	return nil
 }
 
-// failUpload is fail plus the 413 for errTooLarge.
-func failUpload(c *gin.Context, err error) {
-	if errors.Is(err, errTooLarge) {
-		abort(c, http.StatusRequestEntityTooLarge, "ไฟล์ใหญ่เกิน 5 MB")
-		return
-	}
-	fail(c, err)
-}
-
 func (s *Server) uploadImage(c *gin.Context) {
 	name, err := s.saveUpload(c, kindImages)
 	if err != nil {
-		failUpload(c, err)
+		fail(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, api.ImageUpload{Name: name})
@@ -97,8 +85,7 @@ func (s *Server) readImage(c *gin.Context) {
 	c.File(path)
 }
 
-// saveUpload stores multipart field "file" under DATA_DIR/files/<kind> as <32 hex>.<ext>.
-// The body is capped at 6 MB and the file at 5 MB (errTooLarge); only JPEG, PNG and WebP,
+// The body is capped at 6 MB and the file at 5 MB; only JPEG, PNG and WebP,
 // judged by sniffing the bytes rather than trusting the client's name or type, are accepted.
 // It writes a temp file in the target directory and renames it, so a reader never sees a partial file.
 // shortcut: a file whose DB row later fails to commit is orphaned on disk; add a sweep if disk use matters.
@@ -108,11 +95,11 @@ func (s *Server) saveUpload(c *gin.Context, kind fileKind) (string, error) {
 	var tooBig *http.MaxBytesError
 	switch {
 	case errors.As(err, &tooBig):
-		return "", errTooLarge
+		return "", &domain.Error{Kind: domain.TooLarge, Msg: "ไฟล์ใหญ่เกิน 5 MB"}
 	case err != nil:
 		return "", &domain.Error{Kind: domain.Invalid, Msg: "กรุณาเลือกไฟล์"}
 	case fh.Size > maxFile:
-		return "", errTooLarge
+		return "", &domain.Error{Kind: domain.TooLarge, Msg: "ไฟล์ใหญ่เกิน 5 MB"}
 	}
 	src, err := fh.Open()
 	if err != nil {

@@ -11,6 +11,7 @@ const (
 	Forbidden                 // 403: actor may never do this
 	NotFound                  // 404: missing, or hidden from this actor (other Member's Order)
 	Conflict                  // 409: allowed in general, not in the current state
+	TooLarge                  // 413: uploaded file exceeds the size limit
 )
 
 // Error is the only error type handlers translate to a response. Msg is Thai, shown verbatim.

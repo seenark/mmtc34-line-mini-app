@@ -20,6 +20,7 @@ var statusOfKind = map[domain.Kind]int{
 	domain.Forbidden: http.StatusForbidden,
 	domain.NotFound:  http.StatusNotFound,
 	domain.Conflict:  http.StatusConflict,
+	domain.TooLarge:  http.StatusRequestEntityTooLarge,
 }
 
 // fail is the only place errors become responses: *domain.Error -> its Kind's status + Thai Msg;

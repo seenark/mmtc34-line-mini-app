@@ -6,13 +6,20 @@ import type { ReactElement } from "react";
 
 import type { ProfileInput } from "@/api/types.gen";
 
-/** Cohort, nickname and real name are required; address and phone are optional. */
+/**
+ * Cohort, nickname and real name are required; address and phone are optional.
+ * `nicknameOnly` (an Unlinked Member) requires just the nickname.
+ * `initial` prefills the fields; give the form a `key` to reset it for another Member.
+ */
 export function ProfileForm(props: {
   submitLabel: string;
   pending: boolean;
   error?: string;
+  initial?: ProfileInput;
+  nicknameOnly?: boolean;
   onSubmit: (input: ProfileInput) => void;
 }) {
+  const { initial, nicknameOnly } = props;
   return (
     <form
       className="flex flex-col gap-4"
@@ -30,20 +37,49 @@ export function ProfileForm(props: {
         });
       }}
     >
-      <Field label="รุ่น" required>
-        <Input id="cohort" name="cohort" required autoComplete="off" />
+      <Field label="รุ่น" required={!nicknameOnly}>
+        <Input
+          id="cohort"
+          name="cohort"
+          required={!nicknameOnly}
+          autoComplete="off"
+          defaultValue={initial?.cohort}
+        />
       </Field>
       <Field label="ชื่อเล่น" required>
-        <Input id="nickname" name="nickname" required autoComplete="nickname" />
+        <Input
+          id="nickname"
+          name="nickname"
+          required
+          autoComplete="nickname"
+          defaultValue={initial?.nickname}
+        />
       </Field>
-      <Field label="ชื่อจริง" required>
-        <Input id="realName" name="realName" required autoComplete="name" />
+      <Field label="ชื่อจริง" required={!nicknameOnly}>
+        <Input
+          id="realName"
+          name="realName"
+          required={!nicknameOnly}
+          autoComplete="name"
+          defaultValue={initial?.realName}
+        />
       </Field>
       <Field label="ที่อยู่">
-        <Textarea id="address" name="address" autoComplete="street-address" />
+        <Textarea
+          id="address"
+          name="address"
+          autoComplete="street-address"
+          defaultValue={initial?.address}
+        />
       </Field>
       <Field label="เบอร์โทร">
-        <Input id="phone" name="phone" type="tel" autoComplete="tel" />
+        <Input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          defaultValue={initial?.phone}
+        />
       </Field>
       {props.error && (
         <p role="alert" className="text-destructive text-sm">

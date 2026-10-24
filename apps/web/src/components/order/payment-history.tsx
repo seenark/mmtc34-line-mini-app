@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@mmtc34/ui/components/card";
 
+import { slipUrl } from "@/api/payments";
 import {
   type Order,
   PaymentConfirmed,
@@ -46,6 +47,25 @@ export function PaymentHistory({ order }: { order: Order }) {
                   <span className="text-muted-foreground">
                     {when(p.createdAt)}
                   </span>
+                  {p.slip !== "" && (
+                    <a
+                      href={slipUrl(p.slip)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 w-20"
+                    >
+                      <img
+                        src={slipUrl(p.slip)}
+                        alt="สลิป"
+                        className="h-20 w-20 object-cover"
+                      />
+                    </a>
+                  )}
+                  {p.reviewedBy !== "" && p.reviewedAt && (
+                    <span className="text-muted-foreground">
+                      ตรวจโดย {p.reviewedBy} · {when(p.reviewedAt)}
+                    </span>
+                  )}
                   {p.status === PaymentRejected && p.rejectReason && (
                     <span className="text-destructive">
                       เหตุผล: {p.rejectReason}
