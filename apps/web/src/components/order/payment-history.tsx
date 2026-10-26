@@ -1,8 +1,13 @@
+import { Button } from "@mmtc34/ui/components/button";
 import { Card, CardContent } from "@mmtc34/ui/components/card";
+import { ImagePlus, Loader2, X } from "lucide-react";
+import { useRef } from "react";
 
-import { slipUrl } from "@/api/payments";
+import { errorText } from "@/api/me";
+import { slipUrl, useAddSlipImages, useRemoveSlipImage } from "@/api/payments";
 import {
   type Order,
+  type Payment,
   PaymentConfirmed,
   PaymentPending,
   PaymentRejected,
@@ -32,6 +37,95 @@ const when = (iso: string) =>
     timeStyle: "short",
   });
 
+function PaymentSlips({ order, p }: { order: Order; p: Payment }) {
+  const orderId = String(order.id);
+  const add = useAddSlipImages(orderId, p.id);
+  const remove = useRemoveSlipImage(orderId, p.id);
+  const input = useRef<HTMLInputElement>(null);
+  const editable = order.actions.editSlips;
+  const busy = add.isPending || remove.isPending;
+  const error = add.error ?? remove.error;
+  return (
+    <div className="mt-1 flex flex-col gap-2">
+      <ul className="flex flex-wrap gap-2">
+        {p.slips.map((name) => (
+          <li key={name} className="relative">
+            <a
+              href={slipUrl(name)}
+              target="_blank"
+              rel="noreferrer"
+              className="ring-foreground/10 block w-20 overflow-hidden rounded-md ring-1 transition-opacity duration-(--dur-micro) ease-(--ease-out) hover:opacity-80 active:opacity-70"
+            >
+              <img
+                src={slipUrl(name)}
+                alt="สลิป"
+                loading="lazy"
+                className="bg-muted size-20 object-cover"
+              />
+            </a>
+            {editable && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon-sm"
+                aria-label="ลบรูปสลิป"
+                className="absolute top-0.5 right-0.5"
+                disabled={busy || p.slips.length === 1}
+                onClick={() => {
+                  if (confirm("ลบรูปสลิปนี้?")) remove.mutate(name);
+                }}
+              >
+                <X aria-hidden />
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {editable && (
+        <>
+          <input
+            ref={input}
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="เพิ่มรูปสลิป"
+            disabled={busy}
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              e.target.value = "";
+              if (picked.length > 0) add.mutate(picked);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-fit"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+          >
+            {add.isPending ? (
+              <Loader2 aria-hidden className="motion-safe:animate-spin" />
+            ) : (
+              <ImagePlus aria-hidden />
+            )}
+            เพิ่มรูปสลิป
+          </Button>
+        </>
+      )}
+      {error && (
+        <p
+          role="alert"
+          className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm"
+        >
+          {errorText(error)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function PaymentHistory({ order }: { order: Order }) {
   if (order.payments.length === 0 && order.adjustments.length === 0) {
     return null;
@@ -57,7 +151,7 @@ export function PaymentHistory({ order }: { order: Order }) {
                         <ToneBadge tone={badge.tone} dot={badge.dot}>
                           {paymentLabels[p.status] ?? p.status}
                         </ToneBadge>
-                        {p.slip === "" && (
+                        {p.slips.length === 0 && (
                           <span className="text-muted-foreground">เงินสด</span>
                         )}
                       </span>
@@ -70,21 +164,7 @@ export function PaymentHistory({ order }: { order: Order }) {
                     <span className="text-muted-foreground">
                       {when(p.createdAt)}
                     </span>
-                    {p.slip !== "" && (
-                      <a
-                        href={slipUrl(p.slip)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="ring-foreground/10 mt-1 block w-20 overflow-hidden rounded-md ring-1 transition-opacity duration-(--dur-micro) ease-(--ease-out) hover:opacity-80 active:opacity-70"
-                      >
-                        <img
-                          src={slipUrl(p.slip)}
-                          alt="สลิป"
-                          loading="lazy"
-                          className="bg-muted size-20 object-cover"
-                        />
-                      </a>
-                    )}
+                    {p.slips.length > 0 && <PaymentSlips order={order} p={p} />}
                     {p.reviewedBy !== "" && p.reviewedAt && (
                       <span className="text-muted-foreground">
                         ตรวจโดย {p.reviewedBy} · {when(p.reviewedAt)}

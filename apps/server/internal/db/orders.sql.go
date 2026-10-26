@@ -225,8 +225,8 @@ type ListOrdersRow struct {
 	MemberRealName string
 }
 
-// Every Order read in the app goes through the four reads below (server.loadOrders);
-// no other query file selects from orders/items/payments/adjustments for display.
+// Every Order read in the app goes through the five reads below (server.loadOrders);
+// no other query file selects from orders/items/payments/payment_slips/adjustments for display.
 // Writes for slips, cash/adjustments, admin edit and PDPA erase live in their own query files.
 // Filters are optional (NULL = any). The Campaign row comes along so domain.Order can compute
 // effective status without a second lookup. Newest first.
@@ -281,7 +281,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 }
 
 const listPaymentsForOrders = `-- name: ListPaymentsForOrders :many
-SELECT p.id, p.order_id, p.slip, p.status, p.amount, p.reject_reason, p.created_at, p.reviewed_by, p.reviewed_at, r.nickname AS reviewer_nickname
+SELECT p.id, p.order_id, p.status, p.amount, p.reject_reason, p.created_at, p.reviewed_by, p.reviewed_at, r.nickname AS reviewer_nickname
 FROM payments p
 LEFT JOIN members r ON r.id = p.reviewed_by
 WHERE p.order_id IN (/*SLICE:order_ids*/?)
@@ -291,7 +291,6 @@ ORDER BY p.order_id, p.id
 type ListPaymentsForOrdersRow struct {
 	ID               int64
 	OrderID          int64
-	Slip             *string
 	Status           string
 	Amount           *int64
 	RejectReason     string
@@ -323,7 +322,6 @@ func (q *Queries) ListPaymentsForOrders(ctx context.Context, orderIds []int64) (
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrderID,
-			&i.Slip,
 			&i.Status,
 			&i.Amount,
 			&i.RejectReason,
@@ -372,6 +370,52 @@ func (q *Queries) ListShipSnapshots(ctx context.Context, memberID int64) ([]List
 	for rows.Next() {
 		var i ListShipSnapshotsRow
 		if err := rows.Scan(&i.ShipName, &i.ShipAddress, &i.ShipPhone); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSlipsForOrders = `-- name: ListSlipsForOrders :many
+SELECT s.payment_id, s.name
+FROM payment_slips s
+JOIN payments p ON p.id = s.payment_id
+WHERE p.order_id IN (/*SLICE:order_ids*/?)
+ORDER BY s.payment_id, s.id
+`
+
+type ListSlipsForOrdersRow struct {
+	PaymentID int64
+	Name      string
+}
+
+func (q *Queries) ListSlipsForOrders(ctx context.Context, orderIds []int64) ([]ListSlipsForOrdersRow, error) {
+	query := listSlipsForOrders
+	var queryParams []interface{}
+	if len(orderIds) > 0 {
+		for _, v := range orderIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:order_ids*/?", strings.Repeat(",?", len(orderIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:order_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSlipsForOrdersRow{}
+	for rows.Next() {
+		var i ListSlipsForOrdersRow
+		if err := rows.Scan(&i.PaymentID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

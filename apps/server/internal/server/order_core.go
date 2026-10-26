@@ -72,11 +72,19 @@ func (s *Server) loadOrders(ctx context.Context, q *db.Queries, scope orderScope
 	if err != nil {
 		return nil, err
 	}
+	slips, err := q.ListSlipsForOrders(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	slipsOf := make(map[int64][]string, len(payments))
+	for _, sl := range slips {
+		slipsOf[sl.PaymentID] = append(slipsOf[sl.PaymentID], sl.Name)
+	}
 	for _, p := range payments {
 		o := at[p.OrderID]
 		o.Payments = append(o.Payments, domain.Payment{
 			ID:           p.ID,
-			Slip:         emptyIfNil(p.Slip),
+			Slips:        slipsOf[p.ID],
 			Status:       api.PaymentStatus(p.Status),
 			Amount:       p.Amount,
 			RejectReason: p.RejectReason,
@@ -150,7 +158,7 @@ func toAPIOrder(o domain.Order, a domain.Actor) api.Order {
 	}
 	for i, p := range o.Payments {
 		out.Payments[i] = api.Payment{
-			ID: p.ID, OrderID: o.ID, Slip: p.Slip, Status: p.Status, Amount: p.Amount,
+			ID: p.ID, OrderID: o.ID, Slips: append([]string{}, p.Slips...), Status: p.Status, Amount: p.Amount,
 			RejectReason: p.RejectReason, CreatedAt: p.CreatedAt, ReviewedBy: p.ReviewedBy, ReviewedAt: p.ReviewedAt,
 		}
 	}

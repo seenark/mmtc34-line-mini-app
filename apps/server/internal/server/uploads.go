@@ -4,7 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,8 +26,8 @@ const (
 	kindImages fileKind = "images"
 	kindSlips  fileKind = "slips"
 
-	maxFile = 5 << 20
-	maxBody = 6 << 20 // file cap plus multipart overhead
+	maxFile  = 5 << 20
+	maxSlips = 6 // images per Slip upload
 )
 
 // fileName is the only accepted shape of a stored file name; it rules out path traversal.
@@ -85,20 +87,53 @@ func (s *Server) readImage(c *gin.Context) {
 	c.File(path)
 }
 
-// The body is capped at 6 MB and the file at 5 MB; only JPEG, PNG and WebP,
-// judged by sniffing the bytes rather than trusting the client's name or type, are accepted.
-// It writes a temp file in the target directory and renames it, so a reader never sees a partial file.
-// shortcut: a file whose DB row later fails to commit is orphaned on disk; add a sweep if disk use matters.
+// saveUpload stores the one file of an image upload.
 func (s *Server) saveUpload(c *gin.Context, kind fileKind) (string, error) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBody)
-	fh, err := c.FormFile("file")
+	names, err := s.saveUploads(c, kind, 1)
+	if err != nil {
+		return "", err
+	}
+	return names[0], nil
+}
+
+// saveUploads stores 1..max files sent under the repeated form field "file". The body is capped
+// at max files plus 1 MB of multipart overhead and each file at 5 MB; only JPEG, PNG and WebP,
+// judged by sniffing the bytes rather than trusting the client's name or type, are accepted.
+// On any error the files already stored by this call are deleted.
+// shortcut: a file whose DB row later fails to commit is orphaned on disk; add a sweep if disk use matters.
+func (s *Server) saveUploads(c *gin.Context, kind fileKind, max int) ([]string, error) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, int64(max)*maxFile+1<<20)
+	form, err := c.MultipartForm()
 	var tooBig *http.MaxBytesError
 	switch {
 	case errors.As(err, &tooBig):
-		return "", &domain.Error{Kind: domain.TooLarge, Msg: "ไฟล์ใหญ่เกิน 5 MB"}
-	case err != nil:
-		return "", &domain.Error{Kind: domain.Invalid, Msg: "กรุณาเลือกไฟล์"}
-	case fh.Size > maxFile:
+		return nil, &domain.Error{Kind: domain.TooLarge, Msg: "ไฟล์ใหญ่เกิน 5 MB"}
+	case err != nil || len(form.File["file"]) == 0:
+		return nil, &domain.Error{Kind: domain.Invalid, Msg: "กรุณาเลือกไฟล์"}
+	case len(form.File["file"]) > max:
+		return nil, &domain.Error{Kind: domain.Invalid, Msg: fmt.Sprintf("เลือกได้ไม่เกิน %d รูป", max)}
+	}
+	names := make([]string, 0, len(form.File["file"]))
+	for _, fh := range form.File["file"] {
+		name, err := s.saveFile(fh, kind)
+		if err != nil {
+			s.removeFiles(kind, names)
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+func (s *Server) removeFiles(kind fileKind, names []string) {
+	for _, n := range names {
+		os.Remove(s.filePath(kind, n))
+	}
+}
+
+// saveFile writes a temp file in the target directory and renames it, so a reader never sees a partial file.
+func (s *Server) saveFile(fh *multipart.FileHeader, kind fileKind) (string, error) {
+	if fh.Size > maxFile {
 		return "", &domain.Error{Kind: domain.TooLarge, Msg: "ไฟล์ใหญ่เกิน 5 MB"}
 	}
 	src, err := fh.Open()

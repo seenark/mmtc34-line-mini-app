@@ -90,13 +90,19 @@ type Order struct {
 type Payment struct {
 	ID           int64
 	OrderID      int64
-	Slip         *string
 	Status       string
 	Amount       *int64
 	RejectReason string
 	CreatedAt    string
 	ReviewedBy   *int64
 	ReviewedAt   *string
+}
+
+type PaymentSlip struct {
+	ID        int64
+	PaymentID int64
+	Name      string
+	CreatedAt string
 }
 
 type SponsorPosition struct {

@@ -71,7 +71,7 @@ A Slip submitted for the full amount of an Order, which an Admin confirms or rej
 _Avoid_: Transaction, transfer
 
 **Slip**:
-The image of a bank transfer receipt attached to a Payment as evidence.
+The images (one to six per upload) of the bank transfer receipts behind a Payment, kept as evidence. An Admin may add or remove images later; a Slip always keeps at least one.
 _Avoid_: Receipt, proof
 
 **Adjustment**:

@@ -14,7 +14,7 @@ import { SlipImage } from "./slip-image";
 
 export function ReviewCard({ order }: { order: Order }) {
   const slip = order.payments.findLast(
-    (p) => p.status === PaymentPending && p.slip !== "",
+    (p) => p.status === PaymentPending && p.slips.length > 0,
   );
   const confirm = useConfirmSlip(String(order.id));
   const reject = useRejectSlip(String(order.id));
@@ -27,7 +27,9 @@ export function ReviewCard({ order }: { order: Order }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        {slip && <SlipImage name={slip.slip} />}
+        {slip?.slips.map((name) => (
+          <SlipImage key={name} name={name} />
+        ))}
         <div className="flex min-w-0 flex-col gap-0.5">
           <Link
             to="/admin/orders/$orderId"

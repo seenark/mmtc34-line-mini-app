@@ -1,28 +1,35 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { Card, CardContent } from "@mmtc34/ui/components/card";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { errorText } from "@/api/me";
 import { useUploadSlip } from "@/api/payments";
 import { type Order, OrderPendingReview } from "@/api/types.gen";
 
+const MAX_SLIPS = 6;
+
 /**
- * The next step of paying, in place on the Order page: one tap opens the picker, then preview and
- * submit. The upload settles the Order (uploadSlip turns false), so the confirmation is kept by
- * this component's own mutation state rather than by the parent's condition.
+ * The next step of paying, in place on the Order page: one tap opens the picker, then previews and
+ * submit (up to MAX_SLIPS images in one request). The upload settles the Order (uploadSlip turns
+ * false), so the confirmation is kept by this component's own mutation state rather than by the
+ * parent's condition.
  */
 export function SlipUpload({ order }: { order: Order }) {
   const upload = useUploadSlip(String(order.id));
   const input = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File>();
-  const preview = useMemo(
-    () => (file ? URL.createObjectURL(file) : undefined),
-    [file],
+  const [files, setFiles] = useState<File[]>([]);
+  const [over, setOver] = useState(false);
+  const previews = useMemo(
+    () => files.map((f) => URL.createObjectURL(f)),
+    [files],
   );
-  useEffect(() => {
-    if (preview) return () => URL.revokeObjectURL(preview);
-  }, [preview]);
+  useEffect(
+    () => () => {
+      for (const url of previews) URL.revokeObjectURL(url);
+    },
+    [previews],
+  );
 
   if (upload.isSuccess) {
     // On the admin page the Slip is reviewed in place, so the note goes once it is reviewed.
@@ -42,8 +49,8 @@ export function SlipUpload({ order }: { order: Order }) {
           className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!file) return;
-            upload.mutate(file, { onSuccess: () => setFile(undefined) });
+            if (files.length === 0) return;
+            upload.mutate(files, { onSuccess: () => setFiles([]) });
           }}
         >
           <input
@@ -51,39 +58,67 @@ export function SlipUpload({ order }: { order: Order }) {
             id="slip-file"
             type="file"
             accept="image/*"
+            multiple
             className="peer sr-only"
-            tabIndex={file ? -1 : 0}
+            tabIndex={files.length > 0 ? -1 : 0}
             disabled={upload.isPending}
             onChange={(e) => {
-              const picked = e.target.files?.[0];
+              const picked = Array.from(e.target.files ?? []);
               e.target.value = "";
-              if (!picked) return;
+              if (picked.length === 0) return;
               upload.reset();
-              setFile(picked);
+              const next = [...files, ...picked];
+              setOver(next.length > MAX_SLIPS);
+              setFiles(next.slice(0, MAX_SLIPS));
             }}
           />
-          {preview ? (
+          {files.length > 0 ? (
             <>
-              <img
-                src={preview}
-                alt="ตัวอย่างสลิป"
-                className="bg-muted max-h-96 w-full rounded-xl object-contain"
-              />
+              <ul className="grid grid-cols-3 gap-2">
+                {previews.map((src, i) => (
+                  <li
+                    key={src}
+                    className="bg-muted relative aspect-square overflow-hidden rounded-md"
+                  >
+                    <img
+                      src={src}
+                      alt={`ตัวอย่างสลิป ${i + 1}`}
+                      className="size-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon-sm"
+                      aria-label={`เอารูปที่ ${i + 1} ออก`}
+                      className="absolute top-1 right-1"
+                      disabled={upload.isPending}
+                      onClick={() => {
+                        setOver(false);
+                        setFiles(files.filter((_, j) => j !== i));
+                      }}
+                    >
+                      <X aria-hidden />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
               <Button type="submit" size="lg" disabled={upload.isPending}>
                 {upload.isPending && (
                   <Loader2 aria-hidden className="motion-safe:animate-spin" />
                 )}
                 {upload.isPending ? "กำลังอัปโหลด..." : "ส่งสลิป"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                disabled={upload.isPending}
-                onClick={() => input.current?.click()}
-              >
-                เลือกรูปใหม่
-              </Button>
+              {files.length < MAX_SLIPS && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={upload.isPending}
+                  onClick={() => input.current?.click()}
+                >
+                  เพิ่มรูป
+                </Button>
+              )}
             </>
           ) : (
             <label
@@ -96,6 +131,11 @@ export function SlipUpload({ order }: { order: Order }) {
                 โอนแล้วกดตรงนี้เพื่อเลือกรูปสลิป
               </span>
             </label>
+          )}
+          {over && (
+            <p role="status" className="text-muted-foreground text-sm">
+              แนบได้สูงสุด {MAX_SLIPS} รูป
+            </p>
           )}
           {upload.error && (
             <p

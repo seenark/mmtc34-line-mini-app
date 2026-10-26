@@ -47,7 +47,7 @@ type InsertCashPaymentParams struct {
 }
 
 // Cash Payments and Adjustments. Reads go through orders.sql.
-// Cash is confirmed on entry and carries no Slip (slip NULL).
+// Cash is confirmed on entry and has no Slip images.
 func (q *Queries) InsertCashPayment(ctx context.Context, arg InsertCashPaymentParams) error {
 	_, err := q.db.ExecContext(ctx, insertCashPayment,
 		arg.OrderID,

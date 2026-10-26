@@ -1,7 +1,7 @@
 -- Cash Payments and Adjustments. Reads go through orders.sql.
 
 -- name: InsertCashPayment :exec
--- Cash is confirmed on entry and carries no Slip (slip NULL).
+-- Cash is confirmed on entry and has no Slip images.
 INSERT INTO payments (order_id, status, amount, created_at, reviewed_by, reviewed_at)
 VALUES (sqlc.arg(order_id), 'confirmed', sqlc.arg(amount), sqlc.arg(now), sqlc.arg(reviewed_by), sqlc.arg(now));
 

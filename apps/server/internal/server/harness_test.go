@@ -148,13 +148,17 @@ func (c *Client) DoAt(method, fullPath string, body any) *Res {
 	switch b := body.(type) {
 	case nil:
 	case Upload:
+		return c.DoAt(method, fullPath, Uploads{b})
+	case Uploads:
 		var buf bytes.Buffer
 		mw := multipart.NewWriter(&buf)
-		part, err := mw.CreateFormFile("file", b.Filename)
-		if err != nil {
-			t.Fatal(err)
+		for _, u := range b {
+			part, err := mw.CreateFormFile("file", u.Filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			part.Write(u.Bytes)
 		}
-		part.Write(b.Bytes)
 		mw.Close()
 		payload, contentType = &buf, mw.FormDataContentType()
 	default:
@@ -195,6 +199,9 @@ type Upload struct {
 	Filename string
 	Bytes    []byte
 }
+
+// Uploads is a multipart body repeating field "file" once per file.
+type Uploads []Upload
 
 // JPEG is a tiny valid JPEG for Slip/image uploads.
 func JPEG() Upload {

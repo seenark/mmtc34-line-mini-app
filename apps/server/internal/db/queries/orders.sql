@@ -1,5 +1,5 @@
--- Every Order read in the app goes through the four reads below (server.loadOrders);
--- no other query file selects from orders/items/payments/adjustments for display.
+-- Every Order read in the app goes through the five reads below (server.loadOrders);
+-- no other query file selects from orders/items/payments/payment_slips/adjustments for display.
 -- Writes for slips, cash/adjustments, admin edit and PDPA erase live in their own query files.
 
 -- name: ListOrders :many
@@ -30,6 +30,13 @@ FROM payments p
 LEFT JOIN members r ON r.id = p.reviewed_by
 WHERE p.order_id IN (sqlc.slice(order_ids))
 ORDER BY p.order_id, p.id;
+
+-- name: ListSlipsForOrders :many
+SELECT s.payment_id, s.name
+FROM payment_slips s
+JOIN payments p ON p.id = s.payment_id
+WHERE p.order_id IN (sqlc.slice(order_ids))
+ORDER BY s.payment_id, s.id;
 
 -- name: ListAdjustmentsForOrders :many
 SELECT a.*, m.nickname AS creator_nickname

@@ -38,16 +38,50 @@ function settle(qc: QueryClient, order: Order) {
   ]);
 }
 
-export async function uploadSlip(orderId: string, file: File) {
+/** Shrinks every picked image and sends them as repeated `file` fields. */
+async function slipForm(files: File[]) {
   const form = new FormData();
-  form.append("file", await shrinkImage(file), "slip.jpg");
-  return api<Order>("POST", `/orders/${orderId}/slip`, form);
+  for (const file of await Promise.all(files.map(shrinkImage))) {
+    form.append("file", file, "slip.jpg");
+  }
+  return form;
+}
+
+export async function uploadSlip(orderId: string, files: File[]) {
+  return api<Order>("POST", `/orders/${orderId}/slip`, await slipForm(files));
 }
 
 export function useUploadSlip(orderId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => uploadSlip(orderId, file),
+    mutationFn: (files: File[]) => uploadSlip(orderId, files),
+    onSuccess: (order) => settle(qc, order),
+  });
+}
+
+/** Admin: add images to an existing Slip Payment. */
+export function useAddSlipImages(orderId: string, paymentId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (files: File[]) =>
+      api<Order>(
+        "POST",
+        `/admin/orders/${orderId}/payments/${paymentId}/slips`,
+        await slipForm(files),
+      ),
+    onSuccess: (order) => settle(qc, order),
+  });
+}
+
+/** Admin: remove one image; the server refuses the Payment's last one. */
+export function useRemoveSlipImage(orderId: string, paymentId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      api<Order>(
+        "DELETE",
+        `/admin/orders/${orderId}/payments/${paymentId}/slips/${name}`,
+      ),
     onSuccess: (order) => settle(qc, order),
   });
 }

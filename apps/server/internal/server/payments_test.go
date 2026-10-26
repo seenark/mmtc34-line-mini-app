@@ -27,7 +27,8 @@ func TestUploadMovesOrderToPendingReview(t *testing.T) {
 	Equal(t, len(got.Payments), 1)
 	p := got.Payments[0]
 	Equal(t, p.Status, api.PaymentPending)
-	Equal(t, len(p.Slip), 32+len(".jpg"))
+	Equal(t, len(p.Slips), 1)
+	Equal(t, len(p.Slips[0]), 32+len(".jpg"))
 	Equal(t, p.Amount == nil, true)
 	Equal(t, p.ReviewedBy, "")
 	Equal(t, got.Actions.UploadSlip, false)
@@ -108,7 +109,7 @@ func TestRejectNeedsAReasonAndReturnsOrderToAwaiting(t *testing.T) {
 	Equal(t, len(again.Payments), 2)
 	Equal(t, again.Payments[0].Status, api.PaymentRejected)
 	Equal(t, again.Payments[1].Status, api.PaymentPending)
-	Equal(t, again.Payments[0].Slip != again.Payments[1].Slip, true)
+	Equal(t, again.Payments[0].Slips[0] != again.Payments[1].Slips[0], true)
 }
 
 func TestConfirmPaysTheOrderAndRecordsTheReviewer(t *testing.T) {
@@ -145,7 +146,7 @@ func TestSlipIsReadableOnlyByOwnerAndAdmin(t *testing.T) {
 	alice, bob, admin := h.Member("alice"), h.Member("bob"), h.Admin()
 	j := h.OpenJersey()
 	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1)))
-	name := alice.UploadSlip(o.ID).Payments[0].Slip
+	name := alice.UploadSlip(o.ID).Payments[0].Slips[0]
 	path := "/api/slips/" + name
 
 	r := alice.GET(path).Status(200)
@@ -211,4 +212,65 @@ func TestMembersCannotUseAdminSlipEndpoints(t *testing.T) {
 	alice.POST(rejectPath(o.ID), api.RejectInput{Reason: "x"}).Status(403)
 	h.Anonymous().GET(pendingPath).Status(401)
 	Equal(t, alice.Order(o.ID).Status, api.OrderPendingReview)
+}
+
+func slipImagesPath(orderID, paymentID int64) string {
+	return fmt.Sprintf("/api/admin/orders/%d/payments/%d/slips", orderID, paymentID)
+}
+
+func TestOneSlipCarriesSeveralImagesUpToSix(t *testing.T) {
+	h := New(t)
+	alice := h.Member("alice")
+	j := h.OpenJersey()
+	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1)))
+
+	alice.POST(slipPath(o.ID), Uploads{JPEG(), JPEG(), JPEG(), JPEG(), JPEG(), JPEG(), JPEG()}).Status(400)
+	Equal(t, alice.Order(o.ID).Status, api.OrderAwaitingPayment)
+
+	got := As[api.Order](alice.POST(slipPath(o.ID), Uploads{JPEG(), JPEG(), JPEG()}).Status(200))
+	Equal(t, got.Status, api.OrderPendingReview)
+	Equal(t, len(got.Payments), 1)
+	Equal(t, len(got.Payments[0].Slips), 3)
+	for _, name := range got.Payments[0].Slips {
+		alice.GET("/api/slips/" + name).Status(200)
+	}
+}
+
+func TestAdminAddsAndRemovesSlipImagesButKeepsTheLast(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1)))
+	p := alice.UploadSlip(o.ID).Payments[0]
+	admin.POST(confirmPath(o.ID), api.AmountInput{Amount: 260}).Status(200)
+
+	alice.POST(slipImagesPath(o.ID, p.ID), Uploads{JPEG()}).Status(403)
+	added := As[api.Order](admin.POST(slipImagesPath(o.ID, p.ID), Uploads{JPEG(), JPEG()}).Status(200))
+	slips := added.Payments[0].Slips
+	Equal(t, len(slips), 3)
+	Equal(t, slips[0], p.Slips[0])
+	Equal(t, added.Status, api.OrderPaid)
+
+	alice.DELETE(slipImagesPath(o.ID, p.ID) + "/" + slips[1]).Status(403)
+	after := As[api.Order](admin.DELETE(slipImagesPath(o.ID, p.ID) + "/" + slips[1]).Status(200))
+	Equal(t, len(after.Payments[0].Slips), 2)
+	admin.GET("/api/slips/" + slips[1]).Status(404)
+	admin.DELETE(slipImagesPath(o.ID, p.ID) + "/" + slips[1]).Status(404)
+
+	admin.DELETE(slipImagesPath(o.ID, p.ID) + "/" + slips[2]).Status(200)
+	Equal(t, admin.DELETE(slipImagesPath(o.ID, p.ID)+"/"+slips[0]).Status(409).Error(), "ต้องมีรูปสลิปอย่างน้อย 1 รูป")
+	Equal(t, len(alice.Order(o.ID).Payments[0].Slips), 1)
+}
+
+func TestSlipImagesCannotBeAddedToCashOrAnotherOrder(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	cash := admin.Cash(alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1))).ID, 260)
+	other := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "M", 1)))
+	slip := alice.UploadSlip(other.ID).Payments[0]
+
+	admin.POST(slipImagesPath(cash.ID, cash.Payments[0].ID), Uploads{JPEG()}).Status(409)
+	admin.POST(slipImagesPath(cash.ID, slip.ID), Uploads{JPEG()}).Status(404)
+	Equal(t, len(alice.Order(other.ID).Payments[0].Slips), 1)
 }

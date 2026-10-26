@@ -72,7 +72,7 @@ const (
 type Payment struct {
 	ID           int64         `json:"id"`
 	OrderID      int64         `json:"orderId"`
-	Slip         string        `json:"slip"` // slip name, "" = cash recorded by an Admin
+	Slips        []string      `json:"slips"` // slip image names, oldest first; empty = cash recorded by an Admin
 	Status       PaymentStatus `json:"status"`
 	Amount       *int64        `json:"amount"` // set when confirmed
 	RejectReason string        `json:"rejectReason"`
@@ -95,6 +95,7 @@ type OrderActions struct {
 	Cancel     bool `json:"cancel"`
 	UploadSlip bool `json:"uploadSlip"`
 	ReviewSlip bool `json:"reviewSlip"` // confirm or reject
+	EditSlips  bool `json:"editSlips"`  // Admin adds or removes images of a Slip Payment
 	RecordCash bool `json:"recordCash"`
 	Edit       bool `json:"edit"`
 	AddAdjust  bool `json:"addAdjust"`

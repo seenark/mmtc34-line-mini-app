@@ -39,7 +39,7 @@ type Item struct {
 
 type Payment struct {
 	ID           int64
-	Slip         string // "" = cash
+	Slips        []string // image names oldest first; none = cash
 	Status       api.PaymentStatus
 	Amount       *int64
 	RejectReason string
@@ -78,6 +78,7 @@ const (
 	EvCancel      Event = "cancel"
 	EvEdit        Event = "edit"
 	EvAdjust      Event = "adjust"
+	EvEditSlips   Event = "edit_slips"
 )
 
 type party uint8
@@ -122,6 +123,7 @@ var rules = []rule{
 	{EvCancel, admin, anyStatus, cancelled, false},
 	{EvEdit, admin, anyStatus, "", false},
 	{EvAdjust, admin, anyStatus, "", false},
+	{EvEditSlips, admin, anyStatus, "", false},
 }
 
 // Decide answers "may actor fire ev on this Order now, and what is the new STORED status".
@@ -175,6 +177,7 @@ func (o Order) Actions(a Actor) api.OrderActions {
 		Cancel:     can(EvCancel),
 		UploadSlip: can(EvUploadSlip),
 		ReviewSlip: can(EvConfirmSlip) || can(EvRejectSlip),
+		EditSlips:  can(EvEditSlips),
 		RecordCash: can(EvRecordCash),
 		Edit:       can(EvEdit),
 		AddAdjust:  can(EvAdjust),

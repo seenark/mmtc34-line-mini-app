@@ -3,8 +3,8 @@ package server
 import (
 	"database/sql"
 	"net/http"
-	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,23 +20,95 @@ func (s *Server) mountPayments(r routes) {
 	r.admin.GET("/payments/pending", s.pendingSlips)
 	r.admin.POST("/orders/:orderId/confirm", s.confirmSlip)
 	r.admin.POST("/orders/:orderId/reject", s.rejectSlip)
+	r.admin.POST("/orders/:orderId/payments/:paymentId/slips", s.addSlipImages)
+	r.admin.DELETE("/orders/:orderId/payments/:paymentId/slips/:name", s.removeSlipImage)
 }
 
 // uploadSlip reads the body before apply opens the write transaction, so a slow upload never
-// holds the SQLite write lock. A file whose Decide or transaction then fails is deleted.
+// holds the SQLite write lock. Files whose Decide or transaction then fails are deleted.
 func (s *Server) uploadSlip(c *gin.Context) {
-	name, err := s.saveUpload(c, kindSlips)
+	names, err := s.saveUploads(c, kindSlips, maxSlips)
 	if err != nil {
 		fail(c, err)
 		return
 	}
 	ok := s.apply(c, domain.EvUploadSlip, func(q *db.Queries, o domain.Order) error {
-		return q.InsertPendingPayment(c.Request.Context(), db.InsertPendingPaymentParams{
-			OrderID: o.ID, Slip: &name, Now: rfc3339(s.now()),
-		})
+		now := rfc3339(s.now())
+		id, err := q.InsertPendingPayment(c.Request.Context(), db.InsertPendingPaymentParams{OrderID: o.ID, Now: now})
+		if err != nil {
+			return err
+		}
+		return s.insertSlipImages(c, q, id, names, now)
 	})
 	if !ok {
-		os.Remove(s.filePath(kindSlips, name))
+		s.removeFiles(kindSlips, names)
+	}
+}
+
+func (s *Server) insertSlipImages(c *gin.Context, q *db.Queries, paymentID int64, names []string, now string) error {
+	for _, n := range names {
+		if err := q.InsertSlipImage(c.Request.Context(), db.InsertSlipImageParams{PaymentID: paymentID, Name: n, Now: now}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// slipPayment is the Order's Payment named by :paymentId, which must be a Slip Payment (not cash).
+func slipPayment(c *gin.Context, o domain.Order) (domain.Payment, error) {
+	id, err := strconv.ParseInt(c.Param("paymentId"), 10, 64)
+	if err == nil {
+		for _, p := range o.Payments {
+			if p.ID == id {
+				if len(p.Slips) == 0 {
+					return p, &domain.Error{Kind: domain.Conflict, Msg: "รายการนี้เป็นเงินสด ไม่มีสลิป"}
+				}
+				return p, nil
+			}
+		}
+	}
+	return domain.Payment{}, &domain.Error{Kind: domain.NotFound, Msg: "ไม่พบข้อมูล"}
+}
+
+// addSlipImages lets an Admin attach more images to a Slip Payment in any status.
+func (s *Server) addSlipImages(c *gin.Context) {
+	names, err := s.saveUploads(c, kindSlips, maxSlips)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	ok := s.apply(c, domain.EvEditSlips, func(q *db.Queries, o domain.Order) error {
+		p, err := slipPayment(c, o)
+		if err != nil {
+			return err
+		}
+		return s.insertSlipImages(c, q, p.ID, names, rfc3339(s.now()))
+	})
+	if !ok {
+		s.removeFiles(kindSlips, names)
+	}
+}
+
+// removeSlipImage drops one image of a Slip Payment; the last one stays, so a Slip Payment never
+// turns into cash. The file goes only after the transaction commits.
+func (s *Server) removeSlipImage(c *gin.Context) {
+	name := c.Param("name")
+	ok := s.apply(c, domain.EvEditSlips, func(q *db.Queries, o domain.Order) error {
+		p, err := slipPayment(c, o)
+		if err != nil {
+			return err
+		}
+		if !slices.Contains(p.Slips, name) {
+			return &domain.Error{Kind: domain.NotFound, Msg: "ไม่พบข้อมูล"}
+		}
+		if len(p.Slips) == 1 {
+			return &domain.Error{Kind: domain.Conflict, Msg: "ต้องมีรูปสลิปอย่างน้อย 1 รูป"}
+		}
+		_, err = q.DeleteSlipImage(c.Request.Context(), db.DeleteSlipImageParams{PaymentID: p.ID, Name: name})
+		return err
+	})
+	if ok {
+		s.removeFiles(kindSlips, []string{name})
 	}
 }
 
@@ -47,7 +119,7 @@ func (s *Server) readSlip(c *gin.Context) {
 		fail(c, sql.ErrNoRows)
 		return
 	}
-	owner, err := s.q.SlipOwner(c.Request.Context(), &name)
+	owner, err := s.q.SlipOwner(c.Request.Context(), name)
 	if err != nil {
 		fail(c, err)
 		return

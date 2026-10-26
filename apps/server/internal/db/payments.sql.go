@@ -33,36 +33,83 @@ func (q *Queries) ConfirmPendingPayment(ctx context.Context, arg ConfirmPendingP
 	return err
 }
 
-const insertPendingPayment = `-- name: InsertPendingPayment :exec
+const countSlipImages = `-- name: CountSlipImages :one
+SELECT count(*) FROM payment_slips WHERE payment_id = ?1
+`
 
-INSERT INTO payments (order_id, slip, status, created_at)
-VALUES (?1, ?2, 'pending', ?3)
+func (q *Queries) CountSlipImages(ctx context.Context, paymentID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSlipImages, paymentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteSlipImage = `-- name: DeleteSlipImage :execrows
+DELETE FROM payment_slips WHERE payment_id = ?1 AND name = ?2
+`
+
+type DeleteSlipImageParams struct {
+	PaymentID int64
+	Name      string
+}
+
+func (q *Queries) DeleteSlipImage(ctx context.Context, arg DeleteSlipImageParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteSlipImage, arg.PaymentID, arg.Name)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const insertPendingPayment = `-- name: InsertPendingPayment :one
+
+INSERT INTO payments (order_id, status, created_at)
+VALUES (?1, 'pending', ?2)
+RETURNING id
 `
 
 type InsertPendingPaymentParams struct {
 	OrderID int64
-	Slip    *string
 	Now     string
 }
 
-// Slip writes and the Slip ownership lookup. Payments are read for display only through
-// orders.sql (ListPaymentsForOrders); rejecting a pending Payment is orders.sql
-// RejectPendingPayment, shared with Admin cancel.
-func (q *Queries) InsertPendingPayment(ctx context.Context, arg InsertPendingPaymentParams) error {
-	_, err := q.db.ExecContext(ctx, insertPendingPayment, arg.OrderID, arg.Slip, arg.Now)
+// Slip writes and the Slip ownership lookup. Payments and their Slip images are read for display
+// only through orders.sql; rejecting a pending Payment is orders.sql RejectPendingPayment, shared
+// with Admin cancel.
+func (q *Queries) InsertPendingPayment(ctx context.Context, arg InsertPendingPaymentParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, insertPendingPayment, arg.OrderID, arg.Now)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const insertSlipImage = `-- name: InsertSlipImage :exec
+INSERT INTO payment_slips (payment_id, name, created_at)
+VALUES (?1, ?2, ?3)
+`
+
+type InsertSlipImageParams struct {
+	PaymentID int64
+	Name      string
+	Now       string
+}
+
+func (q *Queries) InsertSlipImage(ctx context.Context, arg InsertSlipImageParams) error {
+	_, err := q.db.ExecContext(ctx, insertSlipImage, arg.PaymentID, arg.Name, arg.Now)
 	return err
 }
 
 const slipOwner = `-- name: SlipOwner :one
 SELECT o.member_id
-FROM payments p
+FROM payment_slips s
+JOIN payments p ON p.id = s.payment_id
 JOIN orders o ON o.id = p.order_id
-WHERE p.slip = ?1
+WHERE s.name = ?1
 `
 
-// The Member whose Order the Slip belongs to; no row = no such Slip.
-func (q *Queries) SlipOwner(ctx context.Context, slip *string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, slipOwner, slip)
+// The Member whose Order the Slip image belongs to; no row = no such Slip.
+func (q *Queries) SlipOwner(ctx context.Context, name string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, slipOwner, name)
 	var member_id int64
 	err := row.Scan(&member_id)
 	return member_id, err

@@ -72,7 +72,7 @@ func TestCashSettlesAnAwaitingOrderWithoutASlip(t *testing.T) {
 	Equal(t, got.Balance, int64(0))
 	Equal(t, len(got.Payments), 1)
 	p := got.Payments[0]
-	Equal(t, p.Slip, "")
+	Equal(t, len(p.Slips), 0)
 	Equal(t, p.Status, api.PaymentConfirmed)
 	Equal(t, *p.Amount, int64(520))
 	Equal(t, p.ReviewedBy, "admin")

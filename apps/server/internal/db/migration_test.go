@@ -79,6 +79,9 @@ func TestFootball2026MigrationKeepsOrdersAndWidensTheSchema(t *testing.T) {
 	if got := count(`SELECT count(*) FROM payments WHERE id = 50 AND order_id = 30 AND amount = 520`); got != 1 {
 		t.Errorf("payment 50 of order 30 survived %d times, want 1", got)
 	}
+	if got := text(`SELECT name FROM payment_slips WHERE payment_id = 50`); got != "slip.jpg" {
+		t.Errorf("payment 50 slip image = %q, want slip.jpg", got)
+	}
 	if got := count(`SELECT count(*) FROM adjustments WHERE id = 60 AND order_id = 30 AND amount = -20`); got != 1 {
 		t.Errorf("adjustment 60 of order 30 survived %d times, want 1", got)
 	}

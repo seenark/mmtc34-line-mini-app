@@ -212,7 +212,7 @@ func TestAdminCancelsAnyOrderAndIsIdempotent(t *testing.T) {
 	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1)))
 
 	seen := admin.Order(o.ID)
-	Equal(t, seen.Actions, api.OrderActions{Cancel: true, UploadSlip: true, RecordCash: true, Edit: true, AddAdjust: true})
+	Equal(t, seen.Actions, api.OrderActions{Cancel: true, UploadSlip: true, EditSlips: true, RecordCash: true, Edit: true, AddAdjust: true})
 
 	Equal(t, As[api.Order](admin.POST(cancelPath(o.ID), nil).Status(200)).Status, api.OrderCancelled)
 	Equal(t, As[api.Order](admin.POST(cancelPath(o.ID), nil).Status(200)).Status, api.OrderCancelled)
