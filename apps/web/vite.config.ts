@@ -4,8 +4,9 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // BASE_PATH is the single source: the router basepath and API prefix read it back as
-// import.meta.env.BASE_URL, and the server reads the same env var at runtime.
-const base = `${process.env.BASE_PATH ?? "/mmtc34"}/`;
+// import.meta.env.BASE_URL, and the server reads the same env var at runtime. "/" (or empty)
+// builds for the root of a dedicated subdomain.
+const base = `${(process.env.BASE_PATH ?? "/mmtc34").replace(/\/+$/, "")}/`;
 
 export default defineConfig({
   base,

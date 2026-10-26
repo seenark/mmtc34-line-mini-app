@@ -31,7 +31,7 @@ type ValidOrder struct {
 
 func (v ValidOrder) Delivery() api.Delivery { return v.delivery }
 
-// Ship returns the shipping snapshot; all "" for pickup (pickup discards a typed address).
+// Ship returns the shipping snapshot; all "" for pickup and none (both discard a typed address).
 func (v ValidOrder) Ship() (name, address, phone string) {
 	return v.shipName, v.shipAddress, v.shipPhone
 }
@@ -60,7 +60,7 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 	}
 	v := ValidOrder{delivery: in.Delivery, items: make([]ValidItem, len(in.Items))}
 	switch in.Delivery {
-	case api.DeliveryPickup:
+	case api.DeliveryNone, api.DeliveryPickup:
 	case api.DeliveryShip:
 		v.shipName = strings.TrimSpace(in.ShipName)
 		v.shipAddress = strings.TrimSpace(in.ShipAddress)
@@ -71,13 +71,15 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 	default:
 		return bad("วิธีรับสินค้าไม่ถูกต้อง")
 	}
+	donationOnly := true
 	for i, it := range in.Items {
 		n := i + 1
 		idx := slices.IndexFunc(options, func(o api.Option) bool { return o.ID == it.OptionID })
 		if idx < 0 {
-			return bad("รายการที่ %d: ไม่พบตัวเลือกนี้ในแคมเปญ", n)
+			return bad("รายการที่ %d: ไม่พบตัวเลือกนี้ในอีเวนต์", n)
 		}
 		opt := options[idx]
+		donationOnly = donationOnly && opt.Price == nil
 		var old Item
 		same := false
 		if it.ID != nil {
@@ -123,6 +125,12 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 			vi.UnitPrice = *it.Amount
 		}
 		v.items[i] = vi
+	}
+	switch {
+	case donationOnly && v.delivery != api.DeliveryNone:
+		return bad("คำสั่งซื้อที่มีแต่สมทบทุนไม่ต้องเลือกวิธีรับสินค้า")
+	case !donationOnly && v.delivery == api.DeliveryNone:
+		return bad("วิธีรับสินค้า 'ไม่จัดส่ง' ใช้ได้เฉพาะคำสั่งซื้อที่มีแต่สมทบทุน")
 	}
 	return v, nil
 }

@@ -42,10 +42,10 @@ func TestPublishingADraftShowsItToMembers(t *testing.T) {
 	Equal(t, len(As[[]api.Campaign](bob.GET("/api/campaigns").Status(200))), 1)
 }
 
-func TestMemberAndApplicantAreRefusedWhereTheyShouldBe(t *testing.T) {
+func TestMemberAndVisitorAreRefusedWhereTheyShouldBe(t *testing.T) {
 	h := New(t)
 	j := h.OpenJersey()
-	bob, nok := h.Member("bob"), h.Applicant("nok")
+	bob, nok := h.Member("bob"), h.Visitor("nok")
 
 	Equal(t, bob.GET("/api/admin/campaigns").Status(403).Error(), "สำหรับแอดมินเท่านั้น")
 	bob.POST("/api/admin/campaigns", draft("x")).Status(403)
@@ -55,7 +55,7 @@ func TestMemberAndApplicantAreRefusedWhereTheyShouldBe(t *testing.T) {
 	bob.DELETE(fmt.Sprintf("/api/admin/options/%d", j.Option.ID)).Status(403)
 	bob.POST("/api/admin/images", JPEG()).Status(403)
 
-	Equal(t, nok.GET("/api/campaigns").Status(403).Error(), "รอแอดมินอนุมัติ")
+	nok.GET("/api/campaigns").Status(403)
 	nok.GET(fmt.Sprintf("/api/campaigns/%d", j.Campaign.ID)).Status(403)
 	h.Anonymous().GET("/api/campaigns").Status(401)
 }
@@ -119,10 +119,11 @@ func TestCampaignValidation(t *testing.T) {
 		edit func(*api.CampaignInput)
 		want string
 	}{
-		{"blank title", func(in *api.CampaignInput) { in.Title = "  " }, "กรุณากรอกชื่อแคมเปญ"},
-		{"unknown type", func(in *api.CampaignInput) { in.Type = "raffle" }, "ประเภทแคมเปญไม่ถูกต้อง"},
-		{"unknown status", func(in *api.CampaignInput) { in.Status = "archived" }, "สถานะแคมเปญไม่ถูกต้อง"},
+		{"blank title", func(in *api.CampaignInput) { in.Title = "  " }, "กรุณากรอกชื่ออีเวนต์"},
+		{"unknown type", func(in *api.CampaignInput) { in.Type = "raffle" }, "ประเภทอีเวนต์ไม่ถูกต้อง"},
+		{"unknown status", func(in *api.CampaignInput) { in.Status = "archived" }, "สถานะอีเวนต์ไม่ถูกต้อง"},
 		{"bad closeAt", func(in *api.CampaignInput) { in.CloseAt = &badClose }, "เวลาปิดรับไม่ถูกต้อง"},
+		{"unknown bank code", func(in *api.CampaignInput) { in.BankCode = "999" }, "ธนาคารไม่ถูกต้อง"},
 	}
 	for _, tc := range cases {
 		in := draft("ชื่อ")
@@ -218,4 +219,45 @@ func TestDraftOptionsAreNotLeakedToMembers(t *testing.T) {
 
 	h.Member("bob").GET(fmt.Sprintf("/api/campaigns/%d", d.ID)).Status(404)
 	Equal(t, len(As[api.CampaignDetail](admin.GET(fmt.Sprintf("/api/admin/campaigns/%d", d.ID)).Status(200)).Options), 1)
+}
+
+func TestCampaignBankCodeRoundTripsWithDerivedBankName(t *testing.T) {
+	h := New(t)
+	admin := h.Admin()
+	in := draft("ชื่อ")
+	in.BankCode, in.BankAccountNo, in.BankAccountName = "014", "123-4-56789-0", "ชมรมรุ่น 34"
+
+	got := As[api.Campaign](admin.POST("/api/admin/campaigns", in).Status(201))
+
+	Equal(t, got.BankCode, "014")
+	Equal(t, got.BankName, "ธนาคารไทยพาณิชย์")
+	read := As[api.CampaignDetail](admin.GET(fmt.Sprintf("/api/admin/campaigns/%d", got.ID)).Status(200)).Campaign
+	Equal(t, read.BankCode, "014")
+	Equal(t, read.BankName, "ธนาคารไทยพาณิชย์")
+
+	in.BankCode = ""
+	cleared := As[api.Campaign](admin.PUT(fmt.Sprintf("/api/admin/campaigns/%d", got.ID), in).Status(200))
+	Equal(t, cleared.BankCode, "")
+	Equal(t, cleared.BankName, "")
+}
+
+func TestOptionSizeChartIsCheckedLikeAnImage(t *testing.T) {
+	h := New(t)
+	admin := h.Admin()
+	j := h.OpenJersey()
+	chart := uploadJPEG(t, admin)
+	unknown := "0123456789abcdef0123456789abcdef.jpg"
+	create := fmt.Sprintf("/api/admin/campaigns/%d/options", j.Campaign.ID)
+
+	opt := As[api.Option](admin.POST(create, api.OptionInput{Name: "x", SizeChart: chart}).Status(201))
+	Equal(t, opt.SizeChart, chart)
+	update := fmt.Sprintf("/api/admin/options/%d", opt.ID)
+	Equal(t, As[api.Option](admin.PUT(update, api.OptionInput{Name: "x", SizeChart: ""}).Status(200)).SizeChart, "")
+	Equal(t, As[api.Option](admin.PUT(update, api.OptionInput{Name: "x", SizeChart: chart}).Status(200)).SizeChart, chart)
+
+	Equal(t, admin.POST(create, api.OptionInput{Name: "x", SizeChart: unknown}).Status(400).Error(), "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่")
+	admin.PUT(update, api.OptionInput{Name: "x", SizeChart: unknown}).Status(400)
+
+	detail := As[api.CampaignDetail](h.Member("bob").GET(fmt.Sprintf("/api/campaigns/%d", j.Campaign.ID)).Status(200))
+	Equal(t, detail.Options[1].SizeChart, chart)
 }

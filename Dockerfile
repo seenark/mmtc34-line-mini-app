@@ -8,7 +8,7 @@ RUN go mod download
 COPY apps/server/ ./
 RUN mkdir -p ../web/src/api && /go/bin/tygo generate
 
-# Stage 2: SPA. BASE_PATH is baked into asset URLs; the server refuses to start on a mismatch.
+# Stage 2: SPA. BASE_PATH (a prefix like /mmtc34, or / for a dedicated subdomain) is baked into asset URLs; the server refuses to start on a mismatch.
 FROM oven/bun:1.4.4 AS web
 ARG BASE_PATH=/mmtc34
 ENV BASE_PATH=$BASE_PATH

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { errorText } from "@/api/me";
 import { useConfirmSlip, useRejectSlip } from "@/api/payments";
 import { type Order, PaymentPending } from "@/api/types.gen";
+import { Field } from "@/components/campaign/field";
 import { baht } from "@/components/order/order-status";
 
 import { SlipImage } from "./slip-image";
@@ -25,68 +26,72 @@ export function ReviewCard({ order }: { order: Order }) {
 
   return (
     <Card>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-4">
         {slip && <SlipImage name={slip.slip} />}
-        <div className="flex flex-col gap-0.5">
+        <div className="flex min-w-0 flex-col gap-0.5">
           <Link
-            to="/orders/$orderId"
+            to="/admin/orders/$orderId"
             params={{ orderId: String(order.id) }}
-            className="font-medium underline"
+            className="text-secondary w-fit text-base font-semibold underline-offset-4 hover:underline active:opacity-70"
           >
             คำสั่งซื้อ #{order.id}
           </Link>
-          <span>{order.campaignTitle}</span>
+          <span className="text-sm">{order.campaignTitle}</span>
           <span className="text-muted-foreground text-sm">
             {order.memberNickname}
           </span>
         </div>
-        <ul className="text-sm">
-          {order.items.map((i) => (
-            <li key={i.id}>
-              {i.optionName}
-              {i.size && ` ${i.size}`} × {i.quantity}
-            </li>
-          ))}
-        </ul>
-        <p className="font-semibold tabular-nums">ยอดรวม {baht(order.total)}</p>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`amount-${order.id}`} className="text-sm">
-            ยอดที่ยืนยัน (บาท)
-          </label>
-          <Input
-            id={`amount-${order.id}`}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <Button
-            size="lg"
-            disabled={busy || !Number.isInteger(value) || value <= 0}
-            onClick={() => confirm.mutate(value)}
-          >
-            ยืนยัน
-          </Button>
+        <div className="flex flex-col gap-2 border-y py-3">
+          <ul className="flex flex-col gap-0.5 text-sm">
+            {order.items.map((i) => (
+              <li key={i.id} className="min-w-0">
+                {i.optionName}
+                {i.size && ` ${i.size}`} × {i.quantity}
+              </li>
+            ))}
+          </ul>
+          <p className="text-primary font-semibold tabular-nums">
+            ยอดรวม {baht(order.total)}
+          </p>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`reason-${order.id}`} className="text-sm">
-            เหตุผลที่ปฏิเสธ
-          </label>
-          <Input
-            id={`reason-${order.id}`}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <Button
-            size="lg"
-            variant="destructive"
-            disabled={busy || reason.trim() === ""}
-            onClick={() => reject.mutate(reason.trim())}
-          >
-            ปฏิเสธ
-          </Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-2">
+            <Field label="ยอดที่ยืนยัน (บาท)">
+              <Input
+                id={`amount-${order.id}`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </Field>
+            <Button
+              size="lg"
+              disabled={busy || !Number.isInteger(value) || value <= 0}
+              onClick={() => confirm.mutate(value)}
+            >
+              {confirm.isPending ? "กำลังยืนยัน…" : "ยืนยัน"}
+            </Button>
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            <Field label="เหตุผลที่ปฏิเสธ">
+              <Input
+                id={`reason-${order.id}`}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </Field>
+            <Button
+              size="lg"
+              variant="destructive"
+              disabled={busy || reason.trim() === ""}
+              onClick={() => reject.mutate(reason.trim())}
+            >
+              {reject.isPending ? "กำลังปฏิเสธ…" : "ปฏิเสธ"}
+            </Button>
+          </div>
         </div>
         {error && (
           <p role="alert" className="text-destructive text-sm">

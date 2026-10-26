@@ -22,17 +22,21 @@ function CampaignSettings() {
   } = useSuspenseQuery(adminCampaignQuery(campaignId));
   const update = useUpdateCampaign(campaignId);
   return (
-    <div className="flex flex-col gap-6">
-      <CampaignForm
-        initial={campaign}
-        submitLabel="บันทึก"
-        pending={update.isPending}
-        error={update.error ? errorText(update.error) : undefined}
-        onSubmit={(input) => update.mutate(input)}
-      />
-      {update.isSuccess && (
-        <p className="text-muted-foreground text-sm">บันทึกแล้ว</p>
-      )}
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-3">
+        <CampaignForm
+          initial={campaign}
+          submitLabel="บันทึก"
+          pending={update.isPending}
+          error={update.error ? errorText(update.error) : undefined}
+          onSubmit={(input) => update.mutate(input)}
+        />
+        {update.isSuccess && (
+          <p role="status" className="text-secondary text-sm font-medium">
+            บันทึกแล้ว
+          </p>
+        )}
+      </div>
       <OptionsEditor campaignId={campaignId} options={options} />
     </div>
   );

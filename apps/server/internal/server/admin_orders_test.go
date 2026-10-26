@@ -37,7 +37,9 @@ func TestAdminOrdersForAMemberEvenWhenTheCampaignIsClosed(t *testing.T) {
 func TestAdminOrderTargetAndCampaignMustBeValid(t *testing.T) {
 	h := New(t)
 	alice, admin := h.Member("alice"), h.Admin()
-	nok := h.Applicant("nok").Me().Member
+	nokClient := h.Member("nok")
+	nok := nokClient.Me().Member
+	nokClient.DELETE("/api/me").Status(204)
 	j := h.OpenJersey()
 	d := As[api.Campaign](admin.POST("/api/admin/campaigns", draft("ร่าง")).Status(201))
 	in := api.AdminOrderInput{MemberID: alice.Me().Member.ID, Order: Pickup(Shirt(j, "M", 1))}
@@ -109,4 +111,36 @@ func TestAdminEditWorksAfterTheCampaignClosesAndOnCancelledOrders(t *testing.T) 
 	Equal(t, got.Total, int64(1040))
 
 	admin.PUT(adminOrderPath(9999), Pickup(Shirt(j, "S", 1))).Status(404)
+}
+
+func TestAdminOrdersFollowTheNoDeliveryRule(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	gift := h.AddDonation(j.Campaign.ID)
+	aliceID := alice.Me().Member.ID
+	onBehalf := func(in api.OrderInput) *Res {
+		return admin.POST(adminOrdersPath(j.Campaign.ID), api.AdminOrderInput{MemberID: aliceID, Order: in})
+	}
+
+	o := As[api.Order](onBehalf(NoDelivery(Gift(gift, 200))).Status(201))
+	Equal(t, o.Delivery, api.DeliveryNone)
+	Equal(t, o.PlacedByAdmin, true)
+	Equal(t, alice.Order(o.ID).Delivery, api.DeliveryNone)
+
+	onBehalf(Ship(Gift(gift, 200))).Status(400)
+	onBehalf(Pickup(Gift(gift, 200))).Status(400)
+	onBehalf(NoDelivery(Shirt(j, "M", 1))).Status(400)
+	onBehalf(NoDelivery(Shirt(j, "M", 1), Gift(gift, 200))).Status(400)
+	Equal(t, len(As[[]api.Order](alice.GET("/api/orders").Status(200))), 1)
+
+	shipped := alice.Checkout(j.Campaign.ID, Ship(Shirt(j, "M", 1)))
+	admin.PUT(adminOrderPath(shipped.ID), NoDelivery(Shirt(j, "M", 1))).Status(400)
+	admin.PUT(adminOrderPath(shipped.ID), Ship(Gift(gift, 50))).Status(400)
+	Equal(t, admin.Order(shipped.ID).Delivery, api.DeliveryShip)
+
+	edited := As[api.Order](admin.PUT(adminOrderPath(shipped.ID), NoDelivery(Gift(gift, 50))).Status(200))
+	Equal(t, edited.Delivery, api.DeliveryNone)
+	Equal(t, edited.ShipName+edited.ShipAddress+edited.ShipPhone, "")
+	Equal(t, edited.Total, int64(50))
 }

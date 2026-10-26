@@ -14,7 +14,6 @@ import {
   type AdminLoginInput,
   type Me,
   type Member,
-  MemberApproved,
   type ProfileInput,
   RoleAdmin,
 } from "./types.gen";
@@ -39,13 +38,12 @@ export const meQuery = queryOptions({
   },
 });
 
-type Stage = "/login" | "/onboarding" | "/waiting" | "/";
+type Stage = "/login" | "/onboarding" | "/";
 
-/** The one screen a viewer may be on: no session, not onboarded, Applicant, or approved Member. */
+/** The one screen a viewer may be on: no session, not onboarded, or a Member. */
 function stageOf(me: Me | null): Stage {
   if (!me) return "/login";
-  if (!me.member) return "/onboarding";
-  return me.member.status === MemberApproved ? "/" : "/waiting";
+  return me.member ? "/" : "/onboarding";
 }
 
 /** Redirects to the viewer's own stage unless it is `expected`. */
@@ -54,8 +52,8 @@ export async function enforceStage(qc: QueryClient, expected: Stage) {
   if (stage !== expected) throw redirect({ to: stage });
 }
 
-/** Gate for the approved-Member and Admin layouts. Returns the fresh Member. */
-export async function requireApproved(
+/** Gate for the Member and Admin layouts. Returns the fresh Member. */
+export async function requireMember(
   qc: QueryClient,
   opts?: { admin?: boolean },
 ): Promise<Member> {

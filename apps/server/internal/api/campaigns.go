@@ -22,7 +22,8 @@ type Campaign struct {
 	Title           string         `json:"title"`
 	Description     string         `json:"description"`
 	CoverImage      string         `json:"coverImage"` // image name, "" = none
-	BankName        string         `json:"bankName"`
+	BankCode        string         `json:"bankCode"`   // "" = none
+	BankName        string         `json:"bankName"`   // derived from bankCode, "" when none
 	BankAccountNo   string         `json:"bankAccountNo"`
 	BankAccountName string         `json:"bankAccountName"`
 	QRImage         string         `json:"qrImage"` // image name, "" = none
@@ -35,7 +36,7 @@ type CampaignInput struct {
 	Title           string         `json:"title"`
 	Description     string         `json:"description"`
 	CoverImage      string         `json:"coverImage"`
-	BankName        string         `json:"bankName"`
+	BankCode        string         `json:"bankCode"` // "" = none; otherwise a code from GET /api/config banks
 	BankAccountNo   string         `json:"bankAccountNo"`
 	BankAccountName string         `json:"bankAccountName"`
 	QRImage         string         `json:"qrImage"`
@@ -49,8 +50,9 @@ type Option struct {
 	Name           string   `json:"name"`
 	Description    string   `json:"description"`
 	Image          string   `json:"image"`
-	Price          *int64   `json:"price"` // null = Member chooses the amount (donation)
-	Sizes          []string `json:"sizes"` // empty = no size
+	SizeChart      string   `json:"sizeChart"` // image name, "" = none
+	Price          *int64   `json:"price"`     // null = Member chooses the amount (donation)
+	Sizes          []string `json:"sizes"`     // empty = no size
 	NeedsPrintName bool     `json:"needsPrintName"`
 	NeedsNumber    bool     `json:"needsNumber"`
 	SortOrder      int64    `json:"sortOrder"`
@@ -60,6 +62,7 @@ type OptionInput struct {
 	Name           string   `json:"name"`
 	Description    string   `json:"description"`
 	Image          string   `json:"image"`
+	SizeChart      string   `json:"sizeChart"` // image name, "" = none
 	Price          *int64   `json:"price"`
 	Sizes          []string `json:"sizes"`
 	NeedsPrintName bool     `json:"needsPrintName"`

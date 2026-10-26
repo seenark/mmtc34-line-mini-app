@@ -5,6 +5,7 @@ import {
   OrderPaid,
   OrderPendingReview,
 } from "@/api/types.gen";
+import { ToneBadge } from "@/components/campaign/status-badge";
 
 const labels: Record<string, string> = {
   [OrderAwaitingPayment]: "รอชำระ",
@@ -14,17 +15,30 @@ const labels: Record<string, string> = {
 };
 
 export function OrderStatusBadge({ status }: { status: Order["status"] }) {
-  const tone =
-    status === OrderPaid
-      ? "bg-primary text-primary-foreground"
-      : status === OrderCancelled
-        ? "bg-muted text-muted-foreground"
-        : "border";
-  return (
-    <span className={`shrink-0 px-2 py-0.5 text-xs ${tone}`}>
-      {labels[status] ?? status}
-    </span>
-  );
+  const label = labels[status] ?? status;
+  if (status === OrderAwaitingPayment) {
+    return (
+      <ToneBadge
+        tone="text-secondary ring-secondary ring-1 ring-inset"
+        dot="bg-secondary"
+      >
+        {label}
+      </ToneBadge>
+    );
+  }
+  if (status === OrderPendingReview) {
+    return (
+      <ToneBadge tone="bg-accent text-accent-foreground" dot="bg-secondary">
+        {label}
+      </ToneBadge>
+    );
+  }
+  if (status === OrderPaid) {
+    return (
+      <ToneBadge tone="bg-primary text-primary-foreground">{label}</ToneBadge>
+    );
+  }
+  return <ToneBadge tone="bg-muted text-muted-foreground">{label}</ToneBadge>;
 }
 
 export const baht = (n: number) => `${n.toLocaleString("th-TH")} บาท`;

@@ -26,9 +26,8 @@ const (
 
 var b64 = base64.RawURLEncoding
 
-// The cookie names the LINE userId, not the Member id: linking an Applicant to an Unlinked
-// Member moves the userId, and deleting an account clears it, so both take effect on the
-// next request without touching sessions.
+// The cookie names the LINE userId, not the Member id: deleting an account clears the userId,
+// which takes effect on the next request without touching sessions.
 //
 // Value: base64url(lineUserID) "." expUnix "." base64url(HMAC-SHA256(secret, lineUserID "." expUnix)).
 func signSession(secret []byte, lineUserID string, exp time.Time) string {
@@ -63,13 +62,22 @@ func parseSession(secret []byte, value string, now time.Time) (lineUserID string
 	return string(id), true
 }
 
-// setSession writes the cookie: HttpOnly, SameSite=Lax, Path=BasePath, Max-Age 30 days,
+// cookiePath is the Path attribute: the prefix, or "/" at the root (an empty Path would make
+// browsers scope the cookie to the login endpoint's directory).
+func (s *Server) cookiePath() string {
+	if s.cfg.BasePath == "" {
+		return "/"
+	}
+	return s.cfg.BasePath
+}
+
+// setSession writes the cookie: HttpOnly, SameSite=Lax, Path=BasePath (or "/"), Max-Age 30 days,
 // Secure unless DevLogin.
 func (s *Server) setSession(c *gin.Context, lineUserID string) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     cookieName,
 		Value:    signSession(s.cfg.SessionSecret, lineUserID, s.now().Add(sessionTTL)),
-		Path:     s.cfg.BasePath,
+		Path:     s.cookiePath(),
 		MaxAge:   int(sessionTTL / time.Second),
 		HttpOnly: true,
 		Secure:   !s.cfg.DevLogin,
@@ -80,7 +88,7 @@ func (s *Server) setSession(c *gin.Context, lineUserID string) {
 func (s *Server) clearSession(c *gin.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     cookieName,
-		Path:     s.cfg.BasePath,
+		Path:     s.cookiePath(),
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   !s.cfg.DevLogin,
@@ -115,27 +123,27 @@ func (s *Server) requireSession(c *gin.Context) {
 	c.Set(viewerKey, v)
 }
 
-// requireApproved: Member exists, approved, not deleted; else 403 "รอแอดมินอนุมัติ".
-func (s *Server) requireApproved(c *gin.Context) {
-	if !isApproved(viewerOf(c).Member) {
-		abort(c, http.StatusForbidden, "รอแอดมินอนุมัติ")
+// requireMember: a Member exists and is not deleted; else 403 "กรุณาลงทะเบียนก่อน".
+func (s *Server) requireMember(c *gin.Context) {
+	if !isActive(viewerOf(c).Member) {
+		abort(c, http.StatusForbidden, "กรุณาลงทะเบียนก่อน")
 	}
 }
 
-// requireAdmin: approved Member with role admin; else 403 "สำหรับแอดมินเท่านั้น".
+// requireAdmin: active Member with role admin; else 403 "สำหรับแอดมินเท่านั้น".
 func (s *Server) requireAdmin(c *gin.Context) {
-	if m := viewerOf(c).Member; !isApproved(m) || m.Role != string(api.RoleAdmin) {
+	if m := viewerOf(c).Member; !isActive(m) || m.Role != string(api.RoleAdmin) {
 		abort(c, http.StatusForbidden, "สำหรับแอดมินเท่านั้น")
 	}
 }
 
-func isApproved(m *db.Member) bool {
-	return m != nil && m.Status == string(api.MemberApproved) && m.DeletedAt == nil
+func isActive(m *db.Member) bool {
+	return m != nil && m.DeletedAt == nil
 }
 
 func viewerOf(c *gin.Context) viewer { return c.MustGet(viewerKey).(viewer) }
 
-// actorOf is the domain.Actor for the approved Member on this request. Only valid behind requireApproved.
+// actorOf is the domain.Actor for the Member on this request. Only valid behind requireMember.
 func actorOf(c *gin.Context) domain.Actor {
 	m := viewerOf(c).Member
 	return domain.Actor{MemberID: m.ID, Admin: m.Role == string(api.RoleAdmin)}

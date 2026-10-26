@@ -1,6 +1,7 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
 import { Textarea } from "@mmtc34/ui/components/textarea";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -13,6 +14,7 @@ import {
   CampaignMerch,
   CampaignOpen,
 } from "@/api/types.gen";
+import { configQuery } from "@/lib/liff";
 
 import { Field, selectClass } from "./field";
 import { ImageField } from "./image-field";
@@ -47,8 +49,17 @@ export function CampaignForm(props: {
   onSubmit: (input: CampaignInput) => void;
 }) {
   const c = props.initial;
+  const { data: config } = useQuery(configQuery);
   const [coverImage, setCoverImage] = useState(c?.coverImage ?? "");
   const [qrImage, setQrImage] = useState(c?.qrImage ?? "");
+  const [bankCode, setBankCode] = useState(c?.bankCode ?? "");
+
+  const banks = config?.banks ?? [];
+  // Keeps the saved bank selected while the registry loads or if it no longer lists the code.
+  const bankOptions =
+    bankCode && !banks.some((b) => b.code === bankCode)
+      ? [...banks, { code: bankCode, name: c?.bankName || bankCode }]
+      : banks;
 
   return (
     <form
@@ -63,7 +74,7 @@ export function CampaignForm(props: {
           title: text("title"),
           description: text("description"),
           coverImage,
-          bankName: text("bankName"),
+          bankCode,
           bankAccountNo: text("bankAccountNo"),
           bankAccountName: text("bankAccountName"),
           qrImage,
@@ -86,7 +97,7 @@ export function CampaignForm(props: {
           ))}
         </select>
       </Field>
-      <Field label="ชื่อแคมเปญ" required>
+      <Field label="ชื่ออีเวนต์" required>
         <Input id="title" name="title" required defaultValue={c?.title} />
       </Field>
       <Field label="รายละเอียด">
@@ -97,25 +108,44 @@ export function CampaignForm(props: {
         />
       </Field>
       <ImageField label="รูปปก" value={coverImage} onChange={setCoverImage} />
-      <Field label="ธนาคาร">
-        <Input id="bankName" name="bankName" defaultValue={c?.bankName} />
-      </Field>
-      <Field label="เลขที่บัญชี">
-        <Input
-          id="bankAccountNo"
-          name="bankAccountNo"
-          inputMode="numeric"
-          defaultValue={c?.bankAccountNo}
+      <fieldset className="flex min-w-0 flex-col gap-4 rounded-xl border p-4">
+        <legend className="px-1 text-base font-semibold">ช่องทางรับเงิน</legend>
+        <Field label="ธนาคาร">
+          <select
+            id="bankCode"
+            className={selectClass}
+            value={bankCode}
+            onChange={(e) => setBankCode(e.target.value)}
+          >
+            <option value="">ไม่ระบุธนาคาร</option>
+            {bankOptions.map((b) => (
+              <option key={b.code} value={b.code}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="เลขที่บัญชี">
+          <Input
+            id="bankAccountNo"
+            name="bankAccountNo"
+            inputMode="numeric"
+            defaultValue={c?.bankAccountNo}
+          />
+        </Field>
+        <Field label="ชื่อบัญชี">
+          <Input
+            id="bankAccountName"
+            name="bankAccountName"
+            defaultValue={c?.bankAccountName}
+          />
+        </Field>
+        <ImageField
+          label="รูป QR รับเงิน (เช่น จาก K PLUS)"
+          value={qrImage}
+          onChange={setQrImage}
         />
-      </Field>
-      <Field label="ชื่อบัญชี">
-        <Input
-          id="bankAccountName"
-          name="bankAccountName"
-          defaultValue={c?.bankAccountName}
-        />
-      </Field>
-      <ImageField label="QR รับเงิน" value={qrImage} onChange={setQrImage} />
+      </fieldset>
       <Field label="สถานะ" required>
         <select
           id="status"

@@ -20,13 +20,13 @@ type Campaign struct {
 	Title           string
 	Description     string
 	CoverImage      string
-	BankName        string
 	BankAccountNo   string
 	BankAccountName string
 	QrImage         string
 	Status          string
 	CloseAt         *string
 	CreatedAt       string
+	BankCode        string
 }
 
 type ClassGroup struct {
@@ -70,6 +70,7 @@ type Option struct {
 	NeedsPrintName int64
 	NeedsNumber    int64
 	SortOrder      int64
+	SizeChart      string
 }
 
 type Order struct {

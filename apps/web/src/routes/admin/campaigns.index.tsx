@@ -6,7 +6,7 @@ import { adminCampaignsQuery } from "@/api/campaigns";
 import { CampaignList } from "@/components/campaign/campaign-list";
 
 export const Route = createFileRoute("/admin/campaigns/")({
-  staticData: { nav: { slot: "admin", label: "แคมเปญ", order: 20 } },
+  staticData: { nav: { slot: "admin", label: "อีเวนต์", order: 20 } },
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(adminCampaignsQuery),
   component: AdminCampaigns,
@@ -15,11 +15,11 @@ export const Route = createFileRoute("/admin/campaigns/")({
 function AdminCampaigns() {
   const { data: campaigns } = useSuspenseQuery(adminCampaignsQuery);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">แคมเปญ</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-primary min-w-0 text-2xl font-extrabold">อีเวนต์</h1>
         <Link to="/admin/campaigns/new" className={buttonVariants()}>
-          สร้างแคมเปญ
+          สร้างอีเวนต์
         </Link>
       </div>
       <CampaignList campaigns={campaigns} admin />

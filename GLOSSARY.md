@@ -1,27 +1,27 @@
-# Class Campaign
+# MMTC Events
 
 A LINE MINI App where a school class runs recurring money-collecting campaigns (merch orders, donations, parties), replacing copy-pasted lists and slip albums in the LINE group.
 
 ## People
 
-**Applicant**:
-A person who has opened the app and filled in their profile but is not yet approved by an Admin. Sees nothing until approved.
-_Avoid_: Pending user, guest
-
 **Member**:
-A person approved by an Admin, or created by an Admin on someone's behalf. Usually has a LINE account linked; may not.
-_Avoid_: User, friend, customer
+A person who has opened the app and filled in their profile, or whom an Admin created on someone's behalf. Nobody approves Members. Usually has a LINE account linked; may not.
+_Avoid_: User, friend, customer, applicant
 
 **Unlinked Member**:
-A Member created by an Admin with no LINE account yet, for people who order through an Admin instead of using the app. An Admin links it when that person joins.
+A Member created by an Admin with no LINE account, for people who order through an Admin instead of using the app. When that person joins, an Admin links their Orders to the Member who has their LINE account; an Unlinked Member left with no Orders disappears.
 _Avoid_: Guest, placeholder, offline user
 
 **Admin**:
 A Member who may create Campaigns and edit any data at any time. There can be several.
 _Avoid_: Owner, organiser, treasurer
 
+**Admin Mode**:
+The state in which an Admin sees and uses admin tools. Outside it an Admin uses the app as an ordinary Member, and the Orders they place are their own.
+_Avoid_: Admin login, admin account
+
 **Super Admin**:
-The one Admin account defined in the server configuration and signed into with a password, not LINE. It exists to approve the first people and promote Admins; it cannot be demoted or deleted.
+The one Admin account defined in the server configuration and signed into with a password, not LINE. It exists to promote the first Admins; it cannot be demoted or deleted.
 _Avoid_: Root, owner, bootstrap admin
 
 **Cohort**:
@@ -36,10 +36,10 @@ _Avoid_: Tenant, organisation, cohort
 
 **Campaign**:
 One collection effort with a purpose, a bank account and QR code to pay into, and a status of draft, open, or closed. Closing takes no new Orders and cancels Orders still awaiting payment.
-_Avoid_: Event (an event is one kind of Campaign), project, post
+_Avoid_: Event (an event is one kind of Campaign), project, post. The app shows a Campaign to users as `อีเวนต์` (event); it is still distinct from the `event` type, which the UI labels `กิจกรรม`.
 
 **Option**:
-A purchasable thing offered in a Campaign, with a price and the details each unit needs (for example a jersey design needing size, print name, number). A donation Option lets the Member choose the price.
+A purchasable thing offered in a Campaign, with a price and the details each unit needs (for example a jersey design needing size, print name, number, with a size chart to choose from). A donation Option lets the Member choose the price.
 _Avoid_: Product, SKU, variant
 
 **Sponsor Position**:
@@ -49,7 +49,7 @@ _Avoid_: Slot, logo spot
 ## Ordering
 
 **Order**:
-One checkout by a Member in a Campaign: the Items they chose, how they receive them, and its Payment. A Member may place many Orders in one Campaign.
+One checkout in a Campaign, by a Member or by an Admin on a Member's behalf: the Items chosen, how they are received, and its Payment. A Member may place many Orders in one Campaign, each shipped to a different address if they like.
 _Avoid_: Participation, entry, registration, cart
 
 **Item**:
@@ -57,7 +57,7 @@ A line in an Order: an Option, its details, and a quantity. All units in one Ite
 _Avoid_: Order line, product
 
 **Delivery Method**:
-How an Order reaches the Member: shipped to the address captured on that Order, or picked up.
+How an Order reaches the Member: shipped to the address chosen for that Order, or picked up. An Order holding only donations has none.
 _Avoid_: Shipping option
 
 **Balance**:

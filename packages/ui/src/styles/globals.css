@@ -4,79 +4,62 @@
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
+/* Light mode only. No .dark class is ever set; the variant stays defined so a pasted
+   shadcn `dark:` utility is inert instead of falling back to prefers-color-scheme. */
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  color-scheme: light;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.87 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.371 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.995 0.003 265);
+  --foreground: oklch(0.2 0.045 265);
+  --card: oklch(1 0.001 265);
+  --card-foreground: oklch(0.2 0.045 265);
+  --popover: oklch(1 0.001 265);
+  --popover-foreground: oklch(0.2 0.045 265);
+  --primary: oklch(0.3 0.09 265);
+  --primary-foreground: oklch(0.985 0.006 265);
+  --secondary: oklch(0.52 0.21 262);
+  --secondary-foreground: oklch(0.99 0.005 262);
+  --muted: oklch(0.965 0.01 265);
+  --muted-foreground: oklch(0.48 0.04 265);
+  --accent: oklch(0.95 0.03 262);
+  --accent-foreground: oklch(0.3 0.09 265);
+  --destructive: oklch(0.54 0.21 27);
+  --border: oklch(0.91 0.014 265);
+  --input: oklch(0.66 0.03 265);
+  --ring: oklch(0.55 0.2 262);
+  --chart-1: oklch(0.8 0.1 255);
+  --chart-2: oklch(0.65 0.18 260);
+  --chart-3: oklch(0.52 0.21 262);
+  --chart-4: oklch(0.4 0.16 264);
+  --chart-5: oklch(0.3 0.09 265);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0.005 265);
+  --sidebar-foreground: oklch(0.2 0.045 265);
+  --sidebar-primary: oklch(0.3 0.09 265);
+  --sidebar-primary-foreground: oklch(0.985 0.006 265);
+  --sidebar-accent: oklch(0.95 0.03 262);
+  --sidebar-accent-foreground: oklch(0.3 0.09 265);
+  --sidebar-border: oklch(0.91 0.014 265);
+  --sidebar-ring: oklch(0.55 0.2 262);
+
+  /* Surfaces drawn on the navy primary (admin header). */
+  --primary-muted-foreground: oklch(0.8 0.04 265);
+  --primary-raised: oklch(0.37 0.09 265);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", sans-serif;
+  --font-sans:
+    "LINE Seed Sans TH", ui-sans-serif, system-ui, "Noto Sans Thai", sans-serif;
+  --color-primary-muted-foreground: var(--primary-muted-foreground);
+  --color-primary-raised: var(--primary-raised);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -117,14 +100,58 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* Thai stacks vowels and tone marks above and below the line; Tailwind's default
+   leading clips them at small sizes. */
+@theme {
+  --text-xs--line-height: 1.6;
+  --text-sm--line-height: 1.65;
+  --text-base--line-height: 1.7;
+  --text-lg--line-height: 1.5;
+  --text-xl--line-height: 1.45;
+  --text-2xl--line-height: 1.35;
+  --text-3xl--line-height: 1.3;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply font-sans bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply font-sans bg-background text-foreground antialiased;
+    overflow-x: clip;
+    overflow-wrap: break-word;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
+
+/* Spatial motion collapses to a short opacity crossfade; tw-animate-css reads these vars.
+ * !important is needed to beat per-element utility classes. */
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must override utilities */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 150ms !important;
+    scroll-behavior: auto !important;
+    --tw-enter-scale: 1 !important;
+    --tw-exit-scale: 1 !important;
+    --tw-enter-translate-x: 0 !important;
+    --tw-enter-translate-y: 0 !important;
+    --tw-exit-translate-x: 0 !important;
+    --tw-exit-translate-y: 0 !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced motion must override utilities */

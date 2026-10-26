@@ -43,30 +43,36 @@ function AdminExports() {
       <p className="text-muted-foreground text-sm">
         ไฟล์ CSV นับเฉพาะคำสั่งซื้อที่ชำระเงินแล้ว
       </p>
-      <Label>
+      <Label className="hover:bg-accent min-h-10 w-fit max-w-full cursor-pointer gap-3 rounded-md px-1 transition-colors">
         <Checkbox
           checked={includePending}
           onCheckedChange={setIncludePending}
         />
         รวมคำสั่งซื้อที่รอตรวจสลิป
       </Label>
-      {EXPORTS.map((e) => (
-        <Card key={e.file}>
-          <CardContent className="flex flex-col gap-3">
-            <div>
-              <p className="font-medium">{e.label}</p>
-              <p className="text-muted-foreground text-sm">{e.description}</p>
-            </div>
-            <a
-              download
-              href={`${API}/admin/campaigns/${campaignId}/exports/${e.file}.csv${query}`}
-              className={buttonVariants()}
-            >
-              ดาวน์โหลด
-            </a>
-          </CardContent>
-        </Card>
-      ))}
+      <ul className="flex flex-col gap-3">
+        {EXPORTS.map((e) => (
+          <li key={e.file}>
+            <Card>
+              <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold">{e.label}</h2>
+                  <p className="text-muted-foreground text-sm">
+                    {e.description}
+                  </p>
+                </div>
+                <a
+                  download
+                  href={`${API}/admin/campaigns/${campaignId}/exports/${e.file}.csv${query}`}
+                  className={buttonVariants({ className: "sm:shrink-0" })}
+                >
+                  ดาวน์โหลด
+                </a>
+              </CardContent>
+            </Card>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

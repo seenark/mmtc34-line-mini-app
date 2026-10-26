@@ -1,15 +1,15 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { errorText } from "@/api/me";
 import { orderQuery, useCancelOrder } from "@/api/orders";
 import { OrderAwaitingPayment, OrderCancelled } from "@/api/types.gen";
-import { OrderStatusBadge } from "@/components/order/order-status";
+import { OrderHeader } from "@/components/order/order-header";
 import { OrderSummary } from "@/components/order/order-summary";
 import { PaymentHistory } from "@/components/order/payment-history";
 import { PaymentInfo } from "@/components/order/payment-info";
-import { NavSlot } from "@/lib/nav";
+import { SlipUpload } from "@/components/payment/slip-upload";
 
 export const Route = createFileRoute("/_app/orders/$orderId")({
   loader: ({ context, params }) =>
@@ -22,31 +22,17 @@ function OrderPage() {
   const { data: order } = useSuspenseQuery(orderQuery(orderId));
   const cancel = useCancelOrder(orderId);
   const { actions } = order;
+  // actions merges the owner's and an Admin's rights; in member mode an Admin has only the owner's,
+  // which is cancelling while awaiting payment.
+  const canCancel = actions.cancel && order.status === OrderAwaitingPayment;
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-2xl font-semibold">คำสั่งซื้อ #{order.id}</h1>
-          <OrderStatusBadge status={order.status} />
-        </div>
-        <Link
-          to="/campaigns/$campaignId"
-          params={{ campaignId: String(order.campaignId) }}
-          className="text-muted-foreground text-sm underline"
-        >
-          {order.campaignTitle}
-        </Link>
-        <p className="text-muted-foreground text-sm">
-          {order.memberNickname}
-          {order.placedByAdmin && " · แอดมินสั่งแทน"}
-        </p>
-      </header>
+      <OrderHeader order={order} />
       <OrderSummary order={order} />
-      {order.status === OrderAwaitingPayment && (
-        <PaymentInfo campaignId={order.campaignId} />
-      )}
+      {order.status === OrderAwaitingPayment && <PaymentInfo order={order} />}
+      <SlipUpload order={order} />
       <PaymentHistory order={order} />
-      {actions.cancel && (
+      {canCancel && (
         <Button
           variant="destructive"
           size="lg"
@@ -63,13 +49,11 @@ function OrderPage() {
           {errorText(cancel.error)}
         </p>
       )}
-      {!actions.cancel && !actions.edit && order.status !== OrderCancelled && (
-        <p role="status" className="bg-muted p-3 text-sm">
+      {!canCancel && order.status !== OrderCancelled && (
+        <p role="status" className="bg-muted rounded-md p-3 text-sm">
           หากต้องการแก้ไขหรือยกเลิกคำสั่งซื้อนี้ กรุณาติดต่อแอดมิน
         </p>
       )}
-      <NavSlot slot="orderAction" params={{ orderId }} actions={actions} />
-      <Outlet />
     </div>
   );
 }

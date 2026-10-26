@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 
 import { adminSignIn, enforceStage, errorText, meQuery } from "@/api/me";
+import { AuthShell } from "@/components/auth-shell";
 import { configQuery } from "@/lib/liff";
 
 export const Route = createFileRoute("/admin-login")({
@@ -36,8 +37,7 @@ function AdminLogin() {
   });
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">เข้าสู่ระบบผู้ดูแลระบบ</h1>
+    <AuthShell heading="เข้าสู่ระบบผู้ดูแลระบบ" lede="MMTC Events">
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -45,7 +45,7 @@ function AdminLogin() {
           login.mutate();
         }}
       >
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="username">ชื่อผู้ใช้</Label>
           <Input
             id="username"
@@ -55,7 +55,7 @@ function AdminLogin() {
             onChange={(e) => setUsername(e.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="password">รหัสผ่าน</Label>
           <Input
             id="password"
@@ -75,9 +75,12 @@ function AdminLogin() {
           เข้าสู่ระบบ
         </Button>
       </form>
-      <Link to="/login" className="text-center text-sm underline">
+      <Link
+        to="/login"
+        className="text-secondary flex h-11 items-center justify-center rounded-md text-sm font-semibold underline-offset-4 hover:underline"
+      >
         กลับไปเข้าสู่ระบบด้วย LINE
       </Link>
-    </main>
+    </AuthShell>
   );
 }

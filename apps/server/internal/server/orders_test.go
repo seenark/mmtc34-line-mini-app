@@ -32,7 +32,7 @@ func TestCheckoutValidation(t *testing.T) {
 		{"quantity 100", Pickup(Shirt(j, "M", 100)), "รายการที่ 1: จำนวนต้องอยู่ระหว่าง 1 ถึง 99"},
 		{"ship without address", func() api.OrderInput { in := Ship(Shirt(j, "M", 1)); in.ShipAddress = "  "; return in }(), "กรุณากรอกชื่อ ที่อยู่ และเบอร์โทรสำหรับจัดส่ง"},
 		{"amount on fixed price", Pickup(func() api.ItemInput { i := Shirt(j, "M", 1); i.Amount = new(int64(5)); return i }()), "รายการที่ 1: ตัวเลือกนี้มีราคาคงที่ ไม่ต้องระบุจำนวนเงิน"},
-		{"option of another campaign", Pickup(api.ItemInput{OptionID: foreign.ID, Quantity: 1}), "รายการที่ 1: ไม่พบตัวเลือกนี้ในแคมเปญ"},
+		{"option of another campaign", Pickup(api.ItemInput{OptionID: foreign.ID, Quantity: 1}), "รายการที่ 1: ไม่พบตัวเลือกนี้ในอีเวนต์"},
 		{"unknown delivery", api.OrderInput{Items: []api.ItemInput{Shirt(j, "M", 1)}}, "วิธีรับสินค้าไม่ถูกต้อง"},
 	}
 	for _, tc := range cases {
@@ -50,7 +50,7 @@ func TestDonationAmountIsChosenByTheMember(t *testing.T) {
 	opt := As[api.Option](admin.POST(fmt.Sprintf("/api/admin/campaigns/%d/options", camp.ID), api.OptionInput{Name: "บริจาค"}).Status(201))
 
 	gift := func(amount *int64, qty int64) api.OrderInput {
-		return Pickup(api.ItemInput{OptionID: opt.ID, Quantity: qty, Amount: amount})
+		return NoDelivery(api.ItemInput{OptionID: opt.ID, Quantity: qty, Amount: amount})
 	}
 	alice.POST(ordersPath(camp.ID), gift(nil, 1)).Status(400)
 	alice.POST(ordersPath(camp.ID), gift(new(int64(0)), 1)).Status(400)
@@ -76,7 +76,7 @@ func TestCheckoutLimits(t *testing.T) {
 	Equal(t, len(alice.Checkout(j.Campaign.ID, Pickup(many[:50]...)).Items), 50)
 
 	gift := func(amount int64) api.OrderInput {
-		return Pickup(api.ItemInput{OptionID: opt.ID, Quantity: 1, Amount: &amount})
+		return NoDelivery(api.ItemInput{OptionID: opt.ID, Quantity: 1, Amount: &amount})
 	}
 	Equal(t, alice.POST(ordersPath(camp.ID), gift(1_000_001)).Status(400).Error(), "รายการที่ 1: จำนวนเงินต้องไม่เกิน 1,000,000 บาท")
 	Equal(t, alice.Checkout(camp.ID, gift(1_000_000)).Total, int64(1_000_000))
@@ -123,6 +123,42 @@ func TestShipOrderKeepsAddressAndPickupDiscardsIt(t *testing.T) {
 	Equal(t, picked.ShipAddress+picked.ShipName+picked.ShipPhone, "")
 }
 
+func TestDonationOnlyOrderHasNoDelivery(t *testing.T) {
+	h := New(t)
+	alice := h.Member("alice")
+	j := h.OpenJersey()
+	gift := h.AddDonation(j.Campaign.ID)
+
+	in := NoDelivery(Gift(gift, 150))
+	in.ShipName, in.ShipAddress, in.ShipPhone = "x", "y", "z"
+	o := alice.Checkout(j.Campaign.ID, in)
+	Equal(t, o.Delivery, api.DeliveryNone)
+	Equal(t, o.ShipName+o.ShipAddress+o.ShipPhone, "")
+	Equal(t, o.Total, int64(150))
+	Equal(t, alice.Order(o.ID).Delivery, api.DeliveryNone)
+
+	const wantNone = "คำสั่งซื้อที่มีแต่สมทบทุนไม่ต้องเลือกวิธีรับสินค้า"
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), Ship(Gift(gift, 150))).Status(400).Error(), wantNone)
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), Pickup(Gift(gift, 150))).Status(400).Error(), wantNone)
+	Equal(t, len(As[[]api.Order](alice.GET("/api/orders").Status(200))), 1)
+}
+
+func TestNoDeliveryIsRejectedForOrdersWithMerch(t *testing.T) {
+	h := New(t)
+	alice := h.Member("alice")
+	j := h.OpenJersey()
+	gift := h.AddDonation(j.Campaign.ID)
+
+	const wantMerch = "วิธีรับสินค้า 'ไม่จัดส่ง' ใช้ได้เฉพาะคำสั่งซื้อที่มีแต่สมทบทุน"
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), NoDelivery(Shirt(j, "M", 1))).Status(400).Error(), wantMerch)
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), NoDelivery(Shirt(j, "M", 1), Gift(gift, 100))).Status(400).Error(), wantMerch)
+
+	mixed := alice.Checkout(j.Campaign.ID, Ship(Shirt(j, "M", 1), Gift(gift, 100)))
+	Equal(t, mixed.Delivery, api.DeliveryShip)
+	Equal(t, mixed.Total, int64(360))
+	Equal(t, len(As[[]api.Order](alice.GET("/api/orders").Status(200))), 1)
+}
+
 func TestMemberCancelsOwnAwaitingOrder(t *testing.T) {
 	h := New(t)
 	alice := h.Member("alice")
@@ -157,14 +193,14 @@ func TestClosedCampaignReadsUnpaidOrderAsCancelled(t *testing.T) {
 
 	h.Advance(25 * time.Hour)
 
-	Equal(t, alice.POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(409).Error(), "แคมเปญปิดรับแล้ว")
+	Equal(t, alice.POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(409).Error(), "อีเวนต์ปิดรับแล้ว")
 	got := alice.Order(o.ID)
 	Equal(t, got.Status, api.OrderCancelled)
 	Equal(t, got.Total, int64(520))
 	Equal(t, got.Balance, int64(0))
 	Equal(t, got.Actions.Cancel, false)
 	Equal(t, got.Actions.UploadSlip, false)
-	Equal(t, alice.POST(cancelPath(o.ID), nil).Status(409).Error(), "แคมเปญปิดแล้ว กรุณาติดต่อแอดมิน")
+	Equal(t, alice.POST(cancelPath(o.ID), nil).Status(409).Error(), "อีเวนต์ปิดแล้ว กรุณาติดต่อแอดมิน")
 
 	Equal(t, admin.Order(o.ID).Status, api.OrderCancelled)
 }
@@ -197,7 +233,7 @@ func TestCheckoutNeedsAnOpenVisibleCampaign(t *testing.T) {
 	h.Close(j.Campaign.ID)
 	alice.POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(409)
 	h.Anonymous().POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(401)
-	h.Applicant("nok").POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(403)
+	h.Visitor("nok").POST(ordersPath(j.Campaign.ID), Pickup(Shirt(j, "M", 1))).Status(403)
 }
 
 func TestMyOrdersListsOnlyMineNewestFirst(t *testing.T) {

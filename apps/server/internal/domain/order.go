@@ -160,7 +160,7 @@ func (o Order) Decide(a Actor, ev Event) (api.OrderStatus, error) {
 	case !named:
 		return "", &Error{Kind: Forbidden, Msg: "คุณไม่มีสิทธิ์ทำรายการนี้"}
 	case closedBlocked:
-		return "", &Error{Kind: Conflict, Msg: "แคมเปญปิดแล้ว กรุณาติดต่อแอดมิน"}
+		return "", &Error{Kind: Conflict, Msg: "อีเวนต์ปิดแล้ว กรุณาติดต่อแอดมิน"}
 	}
 	return "", &Error{Kind: Conflict, Msg: "สถานะคำสั่งซื้อไม่รองรับการทำรายการนี้"}
 }

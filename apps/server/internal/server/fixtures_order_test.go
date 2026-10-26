@@ -25,6 +25,21 @@ func Ship(items ...api.ItemInput) api.OrderInput {
 	}
 }
 
+// NoDelivery is the Delivery Method of a donation-only Order.
+func NoDelivery(items ...api.ItemInput) api.OrderInput {
+	return api.OrderInput{Delivery: api.DeliveryNone, Items: items}
+}
+
+// AddDonation has the Admin add a "สมทบทุน" Option (price null) to the Campaign.
+func (h *H) AddDonation(campaignID int64) api.Option {
+	return As[api.Option](h.Admin().POST(fmt.Sprintf("/api/admin/campaigns/%d/options", campaignID), api.OptionInput{Name: "สมทบทุน"}).Status(201))
+}
+
+// Gift is one donation Item of the given amount.
+func Gift(o api.Option, amount int64) api.ItemInput {
+	return api.ItemInput{OptionID: o.ID, Quantity: 1, Amount: &amount}
+}
+
 // Checkout places an Order as this client's Member and asserts 201.
 func (c *Client) Checkout(campaignID int64, in api.OrderInput) api.Order {
 	return As[api.Order](c.POST(fmt.Sprintf("/api/campaigns/%d/orders", campaignID), in).Status(201))

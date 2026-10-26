@@ -17,13 +17,20 @@ function AdminCampaignLayout() {
     data: { campaign },
   } = useSuspenseQuery(adminCampaignQuery(campaignId));
   return (
-    <div className="flex flex-col gap-4">
-      <Link to="/admin/campaigns" className="text-sm underline">
-        ← แคมเปญ
-      </Link>
-      <div className="flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-semibold">{campaign.title}</h1>
-        <StatusBadge status={campaign.status} />
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <Link
+          to="/admin/campaigns"
+          className="text-secondary inline-flex min-h-9 w-fit items-center text-sm font-medium whitespace-nowrap underline-offset-4 transition-colors hover:underline active:opacity-70"
+        >
+          ← อีเวนต์
+        </Link>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-primary min-w-0 text-2xl font-extrabold">
+            {campaign.title}
+          </h1>
+          <StatusBadge status={campaign.status} />
+        </div>
       </div>
       <NavSlot slot="adminCampaign" params={{ campaignId }} />
       <Outlet />

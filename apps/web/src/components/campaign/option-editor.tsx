@@ -4,7 +4,7 @@ import { Checkbox } from "@mmtc34/ui/components/checkbox";
 import { Input } from "@mmtc34/ui/components/input";
 import { Label } from "@mmtc34/ui/components/label";
 import { Textarea } from "@mmtc34/ui/components/textarea";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { useDeleteOption, useSaveOption } from "@/api/campaigns";
 import { errorText } from "@/api/me";
@@ -22,7 +22,7 @@ export function OptionsEditor(props: {
   const [adding, setAdding] = useState(false);
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">ตัวเลือก</h2>
+      <h2 className="text-base font-semibold">ตัวเลือก</h2>
       {props.options.map((o) => (
         <OptionForm key={o.id} campaignId={props.campaignId} option={o} />
       ))}
@@ -47,9 +47,11 @@ function OptionForm(props: {
   onSaved?: () => void;
 }) {
   const o = props.option;
+  const uid = useId();
   const save = useSaveOption(props.campaignId);
   const remove = useDeleteOption();
   const [image, setImage] = useState(o?.image ?? "");
+  const [sizeChart, setSizeChart] = useState(o?.sizeChart ?? "");
   const [memberChosen, setMemberChosen] = useState(
     o ? o.price === null : false,
   );
@@ -59,12 +61,17 @@ function OptionForm(props: {
   );
   const [needsNumber, setNeedsNumber] = useState(o?.needsNumber ?? false);
   const error = save.error ?? remove.error;
+  const sizeList = sizes
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const hasSizes = sizeList.length > 0;
 
   return (
     <Card>
       <CardContent>
         <form
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
@@ -76,13 +83,11 @@ function OptionForm(props: {
                   name: text("name"),
                   description: text("description"),
                   image,
+                  sizeChart: hasSizes ? sizeChart : "",
                   price: memberChosen
                     ? null
                     : Math.trunc(Number(text("price"))),
-                  sizes: sizes
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  sizes: sizeList,
                   needsPrintName,
                   needsNumber,
                   sortOrder: Math.trunc(Number(text("sortOrder"))),
@@ -94,7 +99,7 @@ function OptionForm(props: {
         >
           <Field label="ชื่อตัวเลือก" required>
             <Input
-              id={`name-${o?.id}`}
+              id={`${uid}-name`}
               name="name"
               required
               defaultValue={o?.name}
@@ -102,13 +107,13 @@ function OptionForm(props: {
           </Field>
           <Field label="รายละเอียด">
             <Textarea
-              id={`description-${o?.id}`}
+              id={`${uid}-description`}
               name="description"
               defaultValue={o?.description}
             />
           </Field>
           <ImageField label="รูป" value={image} onChange={setImage} />
-          <Label>
+          <Label className="min-h-9 cursor-pointer">
             <Checkbox
               checked={memberChosen}
               onCheckedChange={setMemberChosen}
@@ -118,9 +123,10 @@ function OptionForm(props: {
           {!memberChosen && (
             <Field label="ราคา (บาท)" required>
               <Input
-                id={`price-${o?.id}`}
+                id={`${uid}-price`}
                 name="price"
                 type="number"
+                inputMode="numeric"
                 min={0}
                 step={1}
                 required
@@ -130,7 +136,7 @@ function OptionForm(props: {
           )}
           <Field label="ขนาด (คั่นด้วยจุลภาค)">
             <Input
-              id={`sizes-${o?.id}`}
+              id={`${uid}-sizes`}
               value={sizes}
               onChange={(e) => setSizes(e.target.value)}
             />
@@ -138,26 +144,35 @@ function OptionForm(props: {
           <Button
             type="button"
             variant="outline"
+            className="self-start"
             onClick={() => setSizes(JERSEY_SIZES)}
           >
             ใช้ไซซ์เสื้อมาตรฐาน
           </Button>
-          <Label>
+          {hasSizes && (
+            <ImageField
+              label="รูปตารางไซซ์"
+              value={sizeChart}
+              onChange={setSizeChart}
+            />
+          )}
+          <Label className="min-h-9 cursor-pointer">
             <Checkbox
               checked={needsPrintName}
               onCheckedChange={setNeedsPrintName}
             />
             ต้องระบุชื่อสกรีน
           </Label>
-          <Label>
+          <Label className="min-h-9 cursor-pointer">
             <Checkbox checked={needsNumber} onCheckedChange={setNeedsNumber} />
             ต้องระบุเบอร์
           </Label>
           <Field label="ลำดับการแสดง">
             <Input
-              id={`sortOrder-${o?.id}`}
+              id={`${uid}-sortOrder`}
               name="sortOrder"
               type="number"
+              inputMode="numeric"
               step={1}
               defaultValue={o?.sortOrder ?? 0}
             />
@@ -168,12 +183,14 @@ function OptionForm(props: {
             </p>
           )}
           {save.isSuccess && o && (
-            <p className="text-muted-foreground text-sm">บันทึกแล้ว</p>
+            <p role="status" className="text-muted-foreground text-sm">
+              บันทึกแล้ว
+            </p>
           )}
           <div className="flex gap-2">
             <Button
               type="submit"
-              className="flex-1"
+              className="min-w-0 flex-1"
               size="lg"
               disabled={save.isPending}
             >

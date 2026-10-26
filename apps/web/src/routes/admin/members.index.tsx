@@ -1,113 +1,96 @@
-import { Button } from "@mmtc34/ui/components/button";
 import { Card, CardContent } from "@mmtc34/ui/components/card";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { errorText } from "@/api/me";
-import {
-  type MemberFilter,
-  membersQuery,
-  useApproveMember,
-  useRejectMember,
-} from "@/api/members";
 
-const tabs: { status: MemberFilter; label: string }[] = [
-  { status: "applicant", label: "รออนุมัติ" },
-  { status: "approved", label: "สมาชิก" },
-];
+import { membersQuery } from "@/api/members";
+import { type Member, RoleAdmin } from "@/api/types.gen";
 
 export const Route = createFileRoute("/admin/members/")({
   staticData: { nav: { slot: "admin", label: "สมาชิก", order: 10 } },
-  validateSearch: (search: { status?: string }) => ({
-    status: (search.status === "approved"
-      ? "approved"
-      : "applicant") as MemberFilter,
-  }),
-  loaderDeps: ({ search }) => ({ status: search.status }),
-  loader: ({ context, deps }) =>
-    context.queryClient.ensureQueryData(membersQuery(deps.status)),
+  loader: ({ context }) => context.queryClient.ensureQueryData(membersQuery),
   component: Members,
 });
 
+const BADGE =
+  "shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap";
+
+function RoleBadge({ m }: { m: Member }) {
+  if (m.superAdmin) {
+    return (
+      <span className={`${BADGE} bg-primary text-primary-foreground`}>
+        ผู้ดูแลระบบหลัก
+      </span>
+    );
+  }
+  if (m.role === RoleAdmin) {
+    return (
+      <span className={`${BADGE} bg-accent text-accent-foreground`}>แอดมิน</span>
+    );
+  }
+  return null;
+}
+
 function Members() {
-  const { status } = Route.useSearch();
-  const { data: members } = useSuspenseQuery(membersQuery(status));
-  const approve = useApproveMember();
-  const reject = useRejectMember();
-  const error = approve.error ?? reject.error;
+  const { data: members } = useSuspenseQuery(membersQuery);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">สมาชิก</h1>
-      <div className="flex gap-2">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.status}
-            to="/admin/members"
-            search={{ status: tab.status }}
-            className={`rounded-none border px-3 py-1.5 text-sm ${
-              tab.status === status ? "bg-primary text-primary-foreground" : ""
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-      {error && (
-        <p role="alert" className="text-destructive text-sm">
-          {errorText(error)}
+    <div className="flex flex-col gap-5">
+      <h1 className="text-primary text-2xl font-extrabold">สมาชิก</h1>
+      {members.length === 0 && (
+        <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
+          ไม่มีรายการ
         </p>
       )}
-      {members.length === 0 && (
-        <p className="text-muted-foreground text-sm">ไม่มีรายการ</p>
-      )}
       <ul className="flex flex-col gap-2">
-        {members.map((m) => (
-          <li key={m.id}>
-            <Card>
-              <CardContent className="flex items-center justify-between gap-2">
-                <Link
-                  to="/admin/members/$memberId"
-                  params={{ memberId: String(m.id) }}
-                  className="min-w-0 flex-1"
+        {members.map((m) => {
+          const meta = [m.realName, m.cohort && `รุ่น ${m.cohort}`].filter(
+            Boolean,
+          );
+          return (
+            <li key={m.id}>
+              <Link
+                to="/admin/members/$memberId"
+                params={{ memberId: String(m.id) }}
+                className="group block min-w-0 rounded-xl"
+              >
+                <Card
+                  size="sm"
+                  className="group-hover:bg-accent group-active:bg-accent transition-colors"
                 >
-                  <div className="flex items-center gap-2 font-medium">
-                    {m.nickname}
-                    {m.superAdmin && (
-                      <span className="bg-muted text-muted-foreground px-2 py-0.5 text-xs font-normal">
-                        ผู้ดูแลระบบหลัก
+                  <CardContent className="flex min-w-0 flex-col gap-0.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={`min-w-0 truncate text-sm font-semibold ${m.deleted ? "text-muted-foreground" : ""}`}
+                      >
+                        {m.nickname}
+                      </span>
+                      <RoleBadge m={m} />
+                      {!m.linked && (
+                        <span
+                          className={`${BADGE} bg-muted text-muted-foreground`}
+                        >
+                          ไม่มี LINE
+                        </span>
+                      )}
+                      {m.deleted && (
+                        <span
+                          className={`${BADGE} bg-muted text-muted-foreground`}
+                        >
+                          ลบแล้ว
+                        </span>
+                      )}
+                    </div>
+                    {meta.length > 0 && (
+                      <span className="text-muted-foreground truncate text-sm">
+                        {meta.join(" · ")}
                       </span>
                     )}
-                  </div>
-                  <div className="text-muted-foreground truncate text-sm">
-                    {m.realName} · รุ่น {m.cohort}
-                  </div>
-                </Link>
-                {status === "applicant" && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={approve.isPending || reject.isPending}
-                      onClick={() => approve.mutate(m.id)}
-                    >
-                      อนุมัติ
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={approve.isPending || reject.isPending}
-                      onClick={() => {
-                        if (confirm(`ปฏิเสธใบสมัครของ ${m.nickname}?`))
-                          reject.mutate(m.id);
-                      }}
-                    >
-                      ปฏิเสธ
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </li>
-        ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -6,7 +6,7 @@ import (
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/api"
 )
 
-// Fixtures go through the real HTTP API (dev login, onboarding, approval) and assert each status.
+// Fixtures go through the real HTTP API (dev login, onboarding) and assert each status.
 // They are idempotent: asking for the same person again signs in again instead of onboarding twice.
 
 const superAdminPassword = "test-super-admin-password"
@@ -22,22 +22,18 @@ func (h *H) SuperAdmin() *Client {
 func (h *H) Admin() *Client {
 	c := h.signIn("U-admin", "admin")
 	if m := c.Me().Member; m.Role != api.RoleAdmin {
-		boss := h.SuperAdmin()
-		boss.POST(fmt.Sprintf("/api/admin/members/%d/approve", m.ID), nil).Status(200)
-		boss.PUT(fmt.Sprintf("/api/admin/members/%d/role", m.ID), api.RoleInput{Role: api.RoleAdmin}).Status(200)
+		h.SuperAdmin().PUT(fmt.Sprintf("/api/admin/members/%d/role", m.ID), api.RoleInput{Role: api.RoleAdmin}).Status(200)
 	}
 	return c
 }
 
-// Applicant signs in as "U-<nick>" and onboards; not yet approved.
-func (h *H) Applicant(nick string) *Client { return h.signIn("U-"+nick, nick) }
+// Member signs in as "U-<nick>" and onboards; open membership makes them a Member at once.
+func (h *H) Member(nick string) *Client { return h.signIn("U-"+nick, nick) }
 
-// Member is Applicant plus Admin approval.
-func (h *H) Member(nick string) *Client {
-	c := h.Applicant(nick)
-	if m := c.Me().Member; m.Status != api.MemberApproved {
-		h.Admin().POST(fmt.Sprintf("/api/admin/members/%d/approve", m.ID), nil).Status(200)
-	}
+// Visitor signs in as "U-<nick>" without filling in a profile, so they have no Member yet.
+func (h *H) Visitor(nick string) *Client {
+	c := h.Anonymous()
+	c.POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-" + nick}).Status(204)
 	return c
 }
 

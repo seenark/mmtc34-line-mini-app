@@ -37,7 +37,7 @@ func (q *Queries) EraseMemberShipping(ctx context.Context, memberID int64) error
 
 const setMemberRole = `-- name: SetMemberRole :one
 UPDATE members SET role = ?1
-WHERE id = ?2 AND status = 'approved' AND deleted_at IS NULL
+WHERE id = ?2 AND deleted_at IS NULL
 RETURNING id, line_user_id, status, role, cohort, nickname, real_name, address, phone, deleted_at, created_at
 `
 

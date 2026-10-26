@@ -138,6 +138,17 @@ func TestShippingAndPickupCsvSplitByDelivery(t *testing.T) {
 	Equal(t, recs[1][4], "ชำระแล้ว")
 }
 
+func TestDonationOnlyOrdersAppearInNeitherShippingNorPickupCsv(t *testing.T) {
+	h := New(t)
+	alice, admin := h.Member("alice"), h.Admin()
+	j := h.OpenJersey()
+	gift := h.AddDonation(j.Campaign.ID)
+	pay(admin, alice, alice.Checkout(j.Campaign.ID, NoDelivery(Gift(gift, 150))))
+
+	Equal(t, len(records(t, admin.GET(exportPath(j.Campaign.ID, "shipping")).Status(200))), 1)
+	Equal(t, len(records(t, admin.GET(exportPath(j.Campaign.ID, "pickup")).Status(200))), 1)
+}
+
 func TestExportPrefixesFormulaCells(t *testing.T) {
 	h := New(t)
 	alice, admin := h.Member("alice"), h.Admin()

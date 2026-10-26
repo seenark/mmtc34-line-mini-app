@@ -14,7 +14,9 @@ function Home() {
   const { data: campaigns } = useSuspenseQuery(campaignsQuery);
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">สวัสดี {member.nickname}</h1>
+      <h1 className="text-primary text-2xl font-extrabold [overflow-wrap:anywhere]">
+        สวัสดี {member.nickname}
+      </h1>
       <CampaignList campaigns={campaigns} />
     </div>
   );

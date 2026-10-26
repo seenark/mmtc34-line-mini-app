@@ -1,3 +1,4 @@
+import { buttonVariants } from "@mmtc34/ui/components/button";
 import { type UseQueryOptions, useQuery } from "@tanstack/react-query";
 import { type AnyRoute, Link, useRouter } from "@tanstack/react-router";
 
@@ -13,14 +14,14 @@ export type NavSlotName =
   | "memberCampaign" // tabs on _app/campaigns.$campaignId.tsx
   | "adminCampaign" // tabs on admin/campaigns.$campaignId.tsx
   | "adminMember" // actions on admin/members.$memberId.tsx
-  | "orderAction"; // buttons on the Order page
+  | "adminOrder"; // buttons on the admin Order page
 
 export interface NavEntry {
   slot: NavSlotName;
   label: string; // Thai
   order: number;
   badge?: UseQueryOptions<number>; // e.g. pending Slip count
-  /** orderAction only: shown when order.actions[when] is true (the server's state machine decides). */
+  /** adminOrder only: shown when order.actions[when] is true (the server's state machine decides). */
   when?: keyof OrderActions;
 }
 
@@ -29,6 +30,33 @@ declare module "@tanstack/react-router" {
     nav?: NavEntry;
   }
 }
+
+const TAB =
+  "flex h-11 items-center border-b-2 border-transparent px-3 text-sm font-semibold whitespace-nowrap -outline-offset-2 transition-colors";
+const CAMPAIGN_TABS = {
+  nav: "flex gap-1 overflow-x-auto border-b",
+  link: `${TAB} -mb-px text-muted-foreground hover:text-foreground data-[status=active]:border-secondary data-[status=active]:text-secondary`,
+};
+const ACTIONS = {
+  nav: "flex flex-wrap gap-2",
+  link: buttonVariants({ variant: "outline" }),
+};
+
+// Labels stay on one line; a row that does not fit scrolls in its container instead of wrapping.
+const SLOT_STYLES: Record<NavSlotName, { nav: string; link: string }> = {
+  member: {
+    nav: "grid auto-cols-fr grid-flow-col",
+    link: "text-muted-foreground hover:text-foreground data-[status=active]:border-secondary data-[status=active]:text-secondary flex min-h-14 items-center justify-center border-t-2 border-transparent px-2 text-sm font-semibold whitespace-nowrap -outline-offset-2 transition-colors",
+  },
+  admin: {
+    nav: "flex w-max gap-1",
+    link: `${TAB} text-primary-muted-foreground hover:text-primary-foreground data-[status=active]:border-primary-foreground data-[status=active]:text-primary-foreground`,
+  },
+  memberCampaign: CAMPAIGN_TABS,
+  adminCampaign: CAMPAIGN_TABS,
+  adminMember: ACTIONS,
+  adminOrder: ACTIONS,
+};
 
 /** Links to every route whose staticData.nav.slot === slot, sorted by order. */
 export function NavSlot(props: {
@@ -48,11 +76,21 @@ export function NavSlot(props: {
     })
     .sort((a, b) => a.nav.order - b.nav.order);
 
+  const style = SLOT_STYLES[props.slot];
   return (
-    <nav className="flex gap-2">
+    <nav className={style.nav}>
       {entries.map(({ to, nav }) => (
         // entries come from the runtime route tree, so `to` and `params` cannot be statically typed
-        <Link key={to} to={to as never} params={props.params as never}>
+        <Link
+          key={to}
+          to={to as never}
+          params={props.params as never}
+          // a slot's root entry (e.g. /admin/) must not stay active on its siblings
+          activeOptions={{
+            exact: entries.some((o) => o.to !== to && o.to.startsWith(to)),
+          }}
+          className={style.link}
+        >
           {nav.label}
           {nav.badge && <Badge options={nav.badge} />}
         </Link>
@@ -64,7 +102,7 @@ export function NavSlot(props: {
 function Badge({ options }: { options: UseQueryOptions<number> }) {
   const { data } = useQuery(options);
   return data ? (
-    <span className="ml-1 rounded-full bg-red-600 px-1.5 text-xs text-white">
+    <span className="bg-destructive text-primary-foreground ml-1.5 rounded-full px-1.5 text-xs font-semibold">
       {data}
     </span>
   ) : null;

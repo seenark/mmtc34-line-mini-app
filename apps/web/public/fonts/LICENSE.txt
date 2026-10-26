@@ -1,0 +1,4 @@
+LINE Seed Sans TH (LINESeedSansTH_W_Rg / Bd / XBd .woff2)
+Source: https://seed.line.me/ (LINE_Seed_Sans_TH_V1.003.zip, Web/WOFF2)
+Copyright LY Corp. Released under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org/open-font-license-official-text/

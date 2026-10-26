@@ -21,13 +21,13 @@ export function ImageField(props: {
     onSuccess: props.onChange,
   });
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {props.value && (
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-3">
           <img
             src={imageUrl(props.value)}
             alt=""
-            className="size-24 object-cover"
+            className="bg-muted size-24 rounded-md border object-contain"
           />
           <Button
             type="button"
@@ -35,6 +35,7 @@ export function ImageField(props: {
             onClick={() => props.onChange("")}
           >
             ลบรูป
+            <span className="sr-only">{props.label}</span>
           </Button>
         </div>
       )}
@@ -51,7 +52,11 @@ export function ImageField(props: {
           }}
         />
       </Field>
-      {upload.isPending && <p className="text-muted-foreground">กำลังอัปโหลด…</p>}
+      {upload.isPending && (
+        <p role="status" className="text-muted-foreground text-sm">
+          กำลังอัปโหลด…
+        </p>
+      )}
       {upload.error && (
         <p role="alert" className="text-destructive text-sm">
           {upload.error instanceof ApiError

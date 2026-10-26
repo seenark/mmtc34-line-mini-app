@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -15,6 +17,8 @@ func (s *Server) mountProfile(r routes) {
 	r.self.DELETE("/me", s.deleteMe)
 	r.admin.PUT("/members/:memberId", s.editMember)
 	r.admin.PUT("/members/:memberId/role", s.setRole)
+	r.member.GET("/me/addresses", s.myAddresses)
+	r.admin.GET("/members/:memberId/addresses", s.memberAddresses)
 }
 
 // ownMember is the viewer's Member, or 404 before onboarding. A deleted Member has no
@@ -39,6 +43,52 @@ func (s *Server) editMe(c *gin.Context) {
 		return
 	}
 	s.saveProfile(c, m.ID, in, domain.RequireIdentity)
+}
+
+func (s *Server) myAddresses(c *gin.Context) {
+	m, ok := ownMember(c)
+	if !ok {
+		return
+	}
+	s.writeAddressChoices(c, m)
+}
+
+func (s *Server) memberAddresses(c *gin.Context) {
+	id, ok := idParam(c, "memberId")
+	if !ok {
+		return
+	}
+	m, err := s.q.GetMember(c.Request.Context(), id)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	s.writeAddressChoices(c, m)
+}
+
+// writeAddressChoices lists the Member's complete profile triple, then the distinct shipping
+// snapshots of their earlier Orders, newest first. A triple is identified by its trimmed fields;
+// the first occurrence wins, so the profile address is listed once even if an Order reused it.
+func (s *Server) writeAddressChoices(c *gin.Context, m db.Member) {
+	snaps, err := s.q.ListShipSnapshots(c.Request.Context(), m.ID)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	out := []api.AddressChoice{}
+	add := func(name, address, phone string) {
+		ch := api.AddressChoice{
+			Name: strings.TrimSpace(name), Address: strings.TrimSpace(address), Phone: strings.TrimSpace(phone),
+		}
+		if ch.Name != "" && ch.Address != "" && ch.Phone != "" && !slices.Contains(out, ch) {
+			out = append(out, ch)
+		}
+	}
+	add(m.RealName, m.Address, m.Phone)
+	for _, sn := range snaps {
+		add(sn.ShipName, sn.ShipAddress, sn.ShipPhone)
+	}
+	c.JSON(http.StatusOK, out)
 }
 
 // editMember is the Admin edit. An Unlinked Member only ever has a nickname.
@@ -81,7 +131,7 @@ func (s *Server) saveProfile(c *gin.Context, id int64, in api.ProfileInput, req 
 }
 
 // deleteMe erases contact data (PDPA) but keeps the row, its nickname and every Order, Item,
-// Payment and Adjustment. An Applicant owns nothing, so its row is removed instead.
+// Payment and Adjustment.
 func (s *Server) deleteMe(c *gin.Context) {
 	m, ok := ownMember(c)
 	if !ok {
@@ -93,9 +143,6 @@ func (s *Server) deleteMe(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	err := s.tx(ctx, func(q *db.Queries) error {
-		if m.Status == string(api.MemberApplicant) {
-			return q.DeleteApplicant(ctx, m.ID)
-		}
 		now := rfc3339(s.now())
 		if err := q.EraseMemberShipping(ctx, m.ID); err != nil {
 			return err
@@ -110,7 +157,7 @@ func (s *Server) deleteMe(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// setRole promotes or demotes an approved Member. Demoting oneself is allowed.
+// setRole promotes or demotes a Member. Demoting oneself is allowed.
 func (s *Server) setRole(c *gin.Context) {
 	id, ok := idParam(c, "memberId")
 	if !ok {
@@ -136,9 +183,6 @@ func (s *Server) setRole(c *gin.Context) {
 		}
 		if isSuperAdmin(m) {
 			return &domain.Error{Kind: domain.Conflict, Msg: "เปลี่ยนบทบาทผู้ดูแลระบบหลักไม่ได้"}
-		}
-		if m.Status != string(api.MemberApproved) {
-			return &domain.Error{Kind: domain.Conflict, Msg: "ต้องอนุมัติสมาชิกก่อนเปลี่ยนบทบาท"}
 		}
 		out, err = q.SetMemberRole(ctx, db.SetMemberRoleParams{ID: id, Role: string(in.Role)})
 		return err

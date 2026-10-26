@@ -1,4 +1,5 @@
 import { Button } from "@mmtc34/ui/components/button";
+import { Check, ShoppingBag } from "lucide-react";
 import { useId, useState } from "react";
 
 import type { Option } from "@/api/types.gen";
@@ -32,12 +33,19 @@ export function AddToCart(props: {
           setAdded(false);
         }}
       />
-      <Button type="submit">เพิ่มลงตะกร้า</Button>
-      {added && (
-        <p role="status" className="text-muted-foreground text-xs">
-          เพิ่มลงตะกร้าแล้ว
-        </p>
-      )}
+      <Button type="submit" size="lg">
+        <ShoppingBag aria-hidden />
+        เพิ่มลงตะกร้า
+      </Button>
+      {/* Always mounted so screen readers announce the text when it appears. */}
+      <div role="status" className="empty:hidden">
+        {added && (
+          <p className="text-secondary flex items-center gap-1.5 text-sm font-medium">
+            <Check aria-hidden className="size-4 shrink-0" />
+            เพิ่มลงตะกร้าแล้ว
+          </p>
+        )}
+      </div>
     </form>
   );
 }

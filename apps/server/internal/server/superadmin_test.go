@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -82,12 +81,12 @@ func TestReservedSuperAdminIDIsRejectedByLineLogin(t *testing.T) {
 	h.Anonymous().POST("/api/auth/line", api.LineLoginInput{IDToken: "ok:superadmin"}).Status(401)
 }
 
-func TestSuperAdminApprovesAndPromotesAnApplicant(t *testing.T) {
+func TestSuperAdminPromotesAMember(t *testing.T) {
 	h := New(t)
-	boss, nok := h.SuperAdmin(), h.Applicant("nok")
+	boss, nok := h.SuperAdmin(), h.Member("nok")
 	id := nok.Me().Member.ID
 
-	boss.POST(fmt.Sprintf("/api/admin/members/%d/approve", id), nil).Status(200)
+	nok.GET("/api/admin/members").Status(403)
 	boss.PUT(memberPath(id)+"/role", api.RoleInput{Role: api.RoleAdmin}).Status(200)
 
 	nok.GET("/api/admin/members").Status(200)

@@ -17,7 +17,7 @@ export function SponsorsEditor(props: {
 }) {
   const [adding, setAdding] = useState(false);
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       {props.positions.map((p) => (
         <SponsorForm key={p.id} campaignId={props.campaignId} position={p} />
       ))}
@@ -44,7 +44,7 @@ function SponsorForm(props: {
   const p = props.position;
   const save = useSaveSponsor(props.campaignId);
   const remove = useDeleteSponsor(props.campaignId);
-  const { data: members } = useSuspenseQuery(membersQuery("approved"));
+  const { data: members } = useSuspenseQuery(membersQuery);
   const [logo, setLogo] = useState(p?.logo ?? "");
   const error = save.error ?? remove.error;
 
@@ -72,6 +72,9 @@ function SponsorForm(props: {
             );
           }}
         >
+          <h2 className="min-w-0 text-base font-semibold">
+            {p ? p.name : "ตำแหน่งใหม่"}
+          </h2>
           <Field label="ชื่อตำแหน่ง" required>
             <Input
               id={`name-${p?.id}`}
@@ -120,16 +123,18 @@ function SponsorForm(props: {
             </p>
           )}
           {save.isSuccess && p && (
-            <p className="text-muted-foreground text-sm">บันทึกแล้ว</p>
+            <p role="status" className="text-secondary text-sm font-medium">
+              บันทึกแล้ว
+            </p>
           )}
           <div className="flex gap-2">
             <Button
               type="submit"
-              className="flex-1"
+              className="min-w-0 flex-1"
               size="lg"
               disabled={save.isPending}
             >
-              {p ? "บันทึกตำแหน่ง" : "เพิ่มตำแหน่ง"}
+              {save.isPending ? "กำลังบันทึก…" : p ? "บันทึกตำแหน่ง" : "เพิ่มตำแหน่ง"}
             </Button>
             {p && (
               <Button
@@ -141,7 +146,7 @@ function SponsorForm(props: {
                   if (confirm(`ลบตำแหน่ง ${p.name}?`)) remove.mutate(p.id);
                 }}
               >
-                ลบ
+                {remove.isPending ? "กำลังลบ…" : "ลบ"}
               </Button>
             )}
           </div>

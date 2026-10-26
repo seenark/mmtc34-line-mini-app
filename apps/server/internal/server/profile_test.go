@@ -25,14 +25,6 @@ func TestMemberEditsOwnProfile(t *testing.T) {
 	Equal(t, alice.Me().Member.RealName, "อลิซ ใจดี")
 }
 
-func TestApplicantCanEditProfile(t *testing.T) {
-	h := New(t)
-	bob := h.Applicant("bob")
-	got := As[api.Member](bob.PUT("/api/me", api.ProfileInput{Cohort: "34", Nickname: "bob", RealName: "Bobby"}).Status(200))
-	Equal(t, got.RealName, "Bobby")
-	Equal(t, got.Status, api.MemberApplicant)
-}
-
 func TestProfileEditKeepsOrderShipSnapshot(t *testing.T) {
 	h := New(t)
 	alice, j := h.Member("alice"), h.OpenJersey()
@@ -85,18 +77,11 @@ func TestSameLineAccountOnboardsFreshAfterDeletion(t *testing.T) {
 		t.Fatal("deleted account still resolves to a Member")
 	}
 	fresh := As[api.Member](again.POST("/api/me", api.ProfileInput{Cohort: "34", Nickname: "alice2", RealName: "Alice Again"}).Status(201))
-	Equal(t, fresh.Status, api.MemberApplicant)
+	Equal(t, fresh.Status, api.MemberApproved)
 	if fresh.ID == oldID {
 		t.Fatal("onboarding reused the deleted Member")
 	}
-	again.GET("/api/orders").Status(403)
-}
-
-func TestApplicantDeletesAccount(t *testing.T) {
-	h := New(t)
-	bob := h.Applicant("bob")
-	bob.DELETE("/api/me").Status(204)
-	Equal(t, len(As[[]api.Member](h.Admin().GET("/api/admin/members?status=applicant").Status(200))), 0)
+	Equal(t, len(As[[]api.Order](again.GET("/api/orders").Status(200))), 0)
 }
 
 func TestAdminEditsMemberProfile(t *testing.T) {
@@ -132,6 +117,4 @@ func TestRoles(t *testing.T) {
 	bob.GET("/api/admin/members").Status(403)
 
 	admin.PUT(rolePath, api.RoleInput{Role: "owner"}).Status(400)
-	carol := h.Applicant("carol")
-	admin.PUT(memberPath(carol.Me().Member.ID)+"/role", api.RoleInput{Role: api.RoleAdmin}).Status(409)
 }

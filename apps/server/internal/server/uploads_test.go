@@ -25,7 +25,7 @@ func TestUploadedImageIsReadableByMembersWithSafeHeaders(t *testing.T) {
 	Equal(t, bytes.Equal(r.Body, JPEG().Bytes), true)
 	Equal(t, len(name), 32+len(".jpg"))
 	h.Anonymous().GET("/api/images/" + name).Status(401)
-	h.Applicant("nok").GET("/api/images/" + name).Status(403)
+	h.Visitor("nok").GET("/api/images/" + name).Status(403)
 }
 
 func TestEachUploadGetsItsOwnName(t *testing.T) {

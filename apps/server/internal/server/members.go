@@ -11,10 +11,8 @@ import (
 )
 
 func (s *Server) mountMembers(r routes) {
-	r.admin.GET("/members", s.listMembers) // ?status=applicant|approved, absent = all
+	r.admin.GET("/members", s.listMembers)
 	r.admin.GET("/members/:memberId", s.getMember)
-	r.admin.POST("/members/:memberId/approve", s.approveApplicant)
-	r.admin.POST("/members/:memberId/reject", s.rejectApplicant)
 }
 
 // memberDTO is the only db.Member -> api.Member mapping.
@@ -39,12 +37,7 @@ func isSuperAdmin(m db.Member) bool {
 }
 
 func (s *Server) listMembers(c *gin.Context) {
-	status := c.Query("status")
-	if status != "" && status != string(api.MemberApplicant) && status != string(api.MemberApproved) {
-		fail(c, &domain.Error{Kind: domain.Invalid, Msg: "สถานะไม่ถูกต้อง"})
-		return
-	}
-	rows, err := s.q.ListMembers(c.Request.Context(), status)
+	rows, err := s.q.ListMembers(c.Request.Context())
 	if err != nil {
 		fail(c, err)
 		return
@@ -67,42 +60,4 @@ func (s *Server) getMember(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, memberDTO(m))
-}
-
-// approveApplicant: applicant -> approved. Approving an approved Member is a no-op 200.
-func (s *Server) approveApplicant(c *gin.Context) {
-	id, ok := idParam(c, "memberId")
-	if !ok {
-		return
-	}
-	m, err := s.q.ApproveMember(c.Request.Context(), id)
-	if err != nil {
-		fail(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, memberDTO(m))
-}
-
-// rejectApplicant hard-deletes the Applicant row (Applicants own nothing). 409 for non-applicants.
-func (s *Server) rejectApplicant(c *gin.Context) {
-	id, ok := idParam(c, "memberId")
-	if !ok {
-		return
-	}
-	ctx := c.Request.Context()
-	err := s.tx(ctx, func(q *db.Queries) error {
-		m, err := q.GetMember(ctx, id)
-		if err != nil {
-			return err
-		}
-		if m.Status != string(api.MemberApplicant) {
-			return &domain.Error{Kind: domain.Conflict, Msg: "สมาชิกคนนี้อนุมัติแล้ว ปฏิเสธไม่ได้"}
-		}
-		return q.DeleteApplicant(ctx, id)
-	})
-	if err != nil {
-		fail(c, err)
-		return
-	}
-	c.Status(http.StatusNoContent)
 }

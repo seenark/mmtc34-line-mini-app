@@ -53,7 +53,7 @@ func TestMemberCannotEditSponsorPositions(t *testing.T) {
 	bob.POST(fmt.Sprintf("/api/admin/campaigns/%d/sponsors", j.Campaign.ID), api.SponsorInput{Name: "x"}).Status(403)
 	bob.PUT(fmt.Sprintf("/api/admin/sponsors/%d", p.ID), api.SponsorInput{Name: "x"}).Status(403)
 	bob.DELETE(fmt.Sprintf("/api/admin/sponsors/%d", p.ID)).Status(403)
-	h.Applicant("nok").GET(fmt.Sprintf("/api/campaigns/%d/sponsors", j.Campaign.ID)).Status(403)
+	h.Visitor("nok").GET(fmt.Sprintf("/api/campaigns/%d/sponsors", j.Campaign.ID)).Status(403)
 }
 
 func TestSponsorPositionRejectsBadInput(t *testing.T) {
@@ -61,7 +61,9 @@ func TestSponsorPositionRejectsBadInput(t *testing.T) {
 	j := h.OpenJersey()
 	admin := h.Admin()
 	create := fmt.Sprintf("/api/admin/campaigns/%d/sponsors", j.Campaign.ID)
-	nokID := h.Applicant("nok").Me().Member.ID
+	nok := h.Member("nok")
+	nokID := nok.Me().Member.ID
+	nok.DELETE("/api/me").Status(204)
 	ghost := int64(9999)
 
 	Equal(t, admin.POST(create, api.SponsorInput{Name: "  "}).Status(400).Error(), "กรุณากรอกชื่อตำแหน่ง")

@@ -1,3 +1,4 @@
+import { Toaster } from "@mmtc34/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
@@ -10,9 +11,14 @@ export interface RouterAppContext {
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
-  component: Outlet,
+  component: () => (
+    <>
+      <Outlet />
+      <Toaster />
+    </>
+  ),
   errorComponent: ({ error }) => (
-    <p role="alert" className="p-4 text-red-700">
+    <p role="alert" className="text-destructive p-4">
       {errorText(error)}
     </p>
   ),

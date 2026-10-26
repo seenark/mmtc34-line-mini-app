@@ -9,5 +9,5 @@ JOIN (
     UNION ALL SELECT 'แขนซ้าย', 'CodeSook', 40
     UNION ALL SELECT 'ชายเสื้อด้านหลังกลาง', '', 50
 ) v
-WHERE c.title = 'เสื้อรุ่น 2569'
+WHERE c.title = 'เสื้อฟุตบอล MMTC 2026'
   AND NOT EXISTS (SELECT 1 FROM sponsor_positions p WHERE p.campaign_id = c.id AND p.name = v.name);

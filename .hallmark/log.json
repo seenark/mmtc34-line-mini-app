@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-10-26",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "theme": "custom",
+    "theme_axes": "light / geometric-sans / cool",
+    "vibe": "jersey navy, white paper, electric blue",
+    "enrichment": "none",
+    "brief": "MMTC Events · design tokens, member and admin shells, sign-in screens"
+  }
+]

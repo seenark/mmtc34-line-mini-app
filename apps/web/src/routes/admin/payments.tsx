@@ -21,10 +21,12 @@ export const Route = createFileRoute("/admin/payments")({
 function Payments() {
   const { data: orders } = useSuspenseQuery(pendingPaymentsQuery);
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">ตรวจสลิป</h1>
+    <div className="flex flex-col gap-5">
+      <h1 className="text-primary text-2xl font-extrabold">ตรวจสลิป</h1>
       {orders.length === 0 && (
-        <p className="text-muted-foreground text-sm">ไม่มีสลิปรอตรวจ</p>
+        <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
+          ไม่มีสลิปรอตรวจ
+        </p>
       )}
       <ul className="flex flex-col gap-3">
         {orders.map((o) => (

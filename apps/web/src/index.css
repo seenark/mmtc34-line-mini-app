@@ -1,1 +1,28 @@
 @import "@mmtc34/ui/globals.css";
+
+/* LINE Seed Sans TH, official woff2 from seed.line.me (SIL OFL 1.1; see public/fonts/LICENSE.txt).
+   The family ships Regular, Bold and ExtraBold, so each face covers the weights Tailwind
+   would otherwise synthesize. */
+@font-face {
+  font-family: "LINE Seed Sans TH";
+  src: url("/fonts/LINESeedSansTH_W_Rg.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LINE Seed Sans TH";
+  src: url("/fonts/LINESeedSansTH_W_Bd.woff2") format("woff2");
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LINE Seed Sans TH";
+  src: url("/fonts/LINESeedSansTH_W_XBd.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}

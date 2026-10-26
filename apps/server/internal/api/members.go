@@ -1,11 +1,9 @@
 package api
 
+// MemberStatus is stored for schema stability; open membership (ADR 0006) means every Member is approved.
 type MemberStatus string
 
-const (
-	MemberApplicant MemberStatus = "applicant"
-	MemberApproved  MemberStatus = "approved"
-)
+const MemberApproved MemberStatus = "approved"
 
 type Role string
 
@@ -60,6 +58,25 @@ type RoleInput struct {
 	Role Role `json:"role"`
 }
 
-type LinkInput struct {
-	ApplicantID int64 `json:"applicantId"`
+// UnlinkedRef names the Unlinked Member who owns an Order.
+type UnlinkedRef struct {
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
+}
+
+// OrderLinkInfo is GET /admin/orders/:orderId/link: what linking this Order would affect.
+type OrderLinkInfo struct {
+	UnlinkedMember UnlinkedRef `json:"unlinkedMember"`
+	OtherOrders    int64       `json:"otherOrders"` // the owner's Orders besides this one
+}
+
+// OrderLinkInput is POST /admin/orders/:orderId/link. MemberID is the Member who has the LINE account.
+type OrderLinkInput struct {
+	MemberID  int64 `json:"memberId"`
+	AllOrders bool  `json:"allOrders"` // also move the owner's other Orders
+}
+
+type OrderLinkResult struct {
+	Moved           int64 `json:"moved"`
+	UnlinkedRemoved bool  `json:"unlinkedRemoved"` // the Unlinked Member owned nothing left and was deleted
 }

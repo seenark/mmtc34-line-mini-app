@@ -1,9 +1,5 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@mmtc34/ui/components/card";
+import { buttonVariants } from "@mmtc34/ui/components/button";
+import { Card, CardContent } from "@mmtc34/ui/components/card";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -15,22 +11,21 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminHome() {
-  const { data: applicants } = useQuery(membersQuery("applicant"));
+  const { data: members } = useQuery(membersQuery);
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">จัดการระบบ</h1>
+    <div className="flex flex-col gap-5">
+      <h1 className="text-primary text-2xl font-extrabold">จัดการระบบ</h1>
       <Card>
-        <CardHeader>
-          <CardTitle>ใบสมัครรออนุมัติ</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <span className="text-2xl font-semibold">
-            {applicants?.length ?? "-"}
-          </span>
+        <CardContent className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <h2 className="text-muted-foreground text-sm font-medium">สมาชิก</h2>
+            <span className="text-primary text-3xl font-extrabold tabular-nums">
+              {members?.length ?? "-"}
+            </span>
+          </div>
           <Link
             to="/admin/members"
-            search={{ status: "applicant" }}
-            className="text-sm underline"
+            className={buttonVariants({ variant: "outline" })}
           >
             ดูรายการ
           </Link>

@@ -32,27 +32,30 @@ func (c Campaign) VisibleTo(a Actor) bool {
 func (c Campaign) CanCheckout(actorIsAdmin bool, now time.Time) error {
 	switch {
 	case c.Stored == api.CampaignDraft:
-		return &Error{Kind: Conflict, Msg: "แคมเปญยังไม่เปิดรับ"}
+		return &Error{Kind: Conflict, Msg: "อีเวนต์ยังไม่เปิดรับ"}
 	case !actorIsAdmin && c.Status(now) != api.CampaignOpen:
-		return &Error{Kind: Conflict, Msg: "แคมเปญปิดรับแล้ว"}
+		return &Error{Kind: Conflict, Msg: "อีเวนต์ปิดรับแล้ว"}
 	}
 	return nil
 }
 
-// ValidateCampaign trims text fields, checks title, type and status, and normalises CloseAt to UTC RFC3339.
+// ValidateCampaign trims text fields, checks title, type, status and bank code, and normalises
+// CloseAt to UTC RFC3339.
 func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.Description = strings.TrimSpace(in.Description)
-	in.BankName = strings.TrimSpace(in.BankName)
+	in.BankCode = strings.TrimSpace(in.BankCode)
 	in.BankAccountNo = strings.TrimSpace(in.BankAccountNo)
 	in.BankAccountName = strings.TrimSpace(in.BankAccountName)
 	switch {
 	case in.Title == "":
-		return in, &Error{Kind: Invalid, Msg: "กรุณากรอกชื่อแคมเปญ"}
+		return in, &Error{Kind: Invalid, Msg: "กรุณากรอกชื่ออีเวนต์"}
 	case in.Type != api.CampaignMerch && in.Type != api.CampaignDonation && in.Type != api.CampaignEvent:
-		return in, &Error{Kind: Invalid, Msg: "ประเภทแคมเปญไม่ถูกต้อง"}
+		return in, &Error{Kind: Invalid, Msg: "ประเภทอีเวนต์ไม่ถูกต้อง"}
 	case in.Status != api.CampaignDraft && in.Status != api.CampaignOpen && in.Status != api.CampaignClosed:
-		return in, &Error{Kind: Invalid, Msg: "สถานะแคมเปญไม่ถูกต้อง"}
+		return in, &Error{Kind: Invalid, Msg: "สถานะอีเวนต์ไม่ถูกต้อง"}
+	case in.BankCode != "" && BankName(in.BankCode) == "":
+		return in, &Error{Kind: Invalid, Msg: "ธนาคารไม่ถูกต้อง"}
 	}
 	if in.CloseAt != nil {
 		t, err := time.Parse(time.RFC3339, *in.CloseAt)

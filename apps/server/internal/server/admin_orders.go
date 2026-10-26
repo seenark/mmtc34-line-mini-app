@@ -15,7 +15,7 @@ func (s *Server) mountAdminOrders(r routes) {
 	r.admin.PUT("/orders/:orderId", s.editOrder)
 }
 
-// createOrderOnBehalf orders for any approved, non-deleted Member (Unlinked included) in any
+// createOrderOnBehalf orders for any non-deleted Member (Unlinked included) in any
 // non-draft Campaign, closed ones too. Such Orders are placed_by_admin, so a closed Campaign
 // never reads them as cancelled.
 func (s *Server) createOrderOnBehalf(c *gin.Context) {
@@ -37,8 +37,8 @@ func (s *Server) createOrderOnBehalf(c *gin.Context) {
 		return
 	}
 	m, err := s.q.GetMember(ctx, in.MemberID)
-	if err != nil || m.Status != string(api.MemberApproved) || m.DeletedAt != nil {
-		fail(c, &domain.Error{Kind: domain.Invalid, Msg: "ไม่พบสมาชิกที่อนุมัติแล้ว"})
+	if err != nil || m.DeletedAt != nil {
+		fail(c, &domain.Error{Kind: domain.Invalid, Msg: "ไม่พบสมาชิก"})
 		return
 	}
 	s.checkout(c, campaignID, m.ID, true, in.Order)

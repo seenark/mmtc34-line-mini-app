@@ -44,7 +44,8 @@ func (s *Server) toAPICampaign(row db.Campaign) api.Campaign {
 		Title:           row.Title,
 		Description:     row.Description,
 		CoverImage:      row.CoverImage,
-		BankName:        row.BankName,
+		BankCode:        row.BankCode,
+		BankName:        domain.BankName(row.BankCode),
 		BankAccountNo:   row.BankAccountNo,
 		BankAccountName: row.BankAccountName,
 		QRImage:         row.QrImage,
@@ -62,6 +63,7 @@ func toAPIOption(o db.Option) api.Option {
 		Name:           o.Name,
 		Description:    o.Description,
 		Image:          o.Image,
+		SizeChart:      o.SizeChart,
 		Price:          o.Price,
 		Sizes:          sizes,
 		NeedsPrintName: o.NeedsPrintName == 1,
@@ -150,7 +152,7 @@ func (s *Server) createCampaign(c *gin.Context) {
 		Title:           in.Title,
 		Description:     in.Description,
 		CoverImage:      in.CoverImage,
-		BankName:        in.BankName,
+		BankCode:        in.BankCode,
 		BankAccountNo:   in.BankAccountNo,
 		BankAccountName: in.BankAccountName,
 		QrImage:         in.QRImage,
@@ -180,7 +182,7 @@ func (s *Server) updateCampaign(c *gin.Context) {
 		Title:           in.Title,
 		Description:     in.Description,
 		CoverImage:      in.CoverImage,
-		BankName:        in.BankName,
+		BankCode:        in.BankCode,
 		BankAccountNo:   in.BankAccountNo,
 		BankAccountName: in.BankAccountName,
 		QrImage:         in.QRImage,
@@ -202,7 +204,7 @@ func (s *Server) bindOption(c *gin.Context) (in api.OptionInput, sizes string, o
 	}
 	in, err := domain.ValidateOption(in)
 	if err == nil {
-		err = s.requireImages(in.Image)
+		err = s.requireImages(in.Image, in.SizeChart)
 	}
 	if err != nil {
 		fail(c, err)
@@ -238,6 +240,7 @@ func (s *Server) createOption(c *gin.Context) {
 		Name:           in.Name,
 		Description:    in.Description,
 		Image:          in.Image,
+		SizeChart:      in.SizeChart,
 		Price:          in.Price,
 		Sizes:          sizes,
 		NeedsPrintName: flag(in.NeedsPrintName),
@@ -265,6 +268,7 @@ func (s *Server) updateOption(c *gin.Context) {
 		Name:           in.Name,
 		Description:    in.Description,
 		Image:          in.Image,
+		SizeChart:      in.SizeChart,
 		Price:          in.Price,
 		Sizes:          sizes,
 		NeedsPrintName: flag(in.NeedsPrintName),

@@ -6,9 +6,9 @@ import "github.com/gin-gonic/gin"
 // to the group whose gate it needs; gating itself lives here and in session.go.
 type routes struct {
 	public *gin.RouterGroup // anyone: config, login
-	self   *gin.RouterGroup // valid session, Member may be nil or an Applicant: me, onboarding, profile
-	member *gin.RouterGroup // approved, not deleted
-	admin  *gin.RouterGroup // approved Admin; mounted at /api/admin
+	self   *gin.RouterGroup // valid session, Member may be nil: me, onboarding, profile
+	member *gin.RouterGroup // has a Member, not deleted
+	admin  *gin.RouterGroup // Admin Member; mounted at /api/admin
 }
 
 // mount is the complete route table.
@@ -16,7 +16,7 @@ func (s *Server) mount(api *gin.RouterGroup) {
 	r := routes{
 		public: api,
 		self:   api.Group("", s.requireSession),
-		member: api.Group("", s.requireSession, s.requireApproved),
+		member: api.Group("", s.requireSession, s.requireMember),
 		admin:  api.Group("/admin", s.requireSession, s.requireAdmin),
 	}
 	s.mountConfig(r)

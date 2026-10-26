@@ -1,12 +1,12 @@
-# Class Campaign
+# MMTC Events
 
-LINE MINI App where one school class runs money-collecting Campaigns (jersey orders, donations, parties). Members order like in an online shop and upload a transfer Slip per Order; Admins approve people, review Slips, record cash and Adjustments, and export factory, shipping and pickup lists.
+LINE MINI App where one school class runs money-collecting Campaigns (jersey orders, donations, parties). Anyone who signs in with LINE and fills in a profile is a Member at once; there is no approval step. Members order like in an online shop, pay by transfer using the Campaign's QR image and bank account, and upload a transfer Slip per Order. Admins review Slips, record cash and Adjustments, and export factory, shipping and pickup lists.
 
 Terms are defined in `GLOSSARY.md`. The design is in `docs/architecture.md`, and the decisions behind it in `docs/adr/`.
 
 ## Layout
 
-- `apps/server` is the Go server (Gin, SQLite, sqlc, goose). It serves the API under `${BASE_PATH}/api` and embeds the built web app for every other path under `${BASE_PATH}`.
+- `apps/server` is the Go server (Gin, SQLite, sqlc, goose). It serves the API under `${BASE_PATH}/api` and embeds the built web app for every other path under `${BASE_PATH}`. With `BASE_PATH=/` the API is at `/api` and the web app owns the whole host.
 - `apps/web` is the React SPA (TanStack Router and Query, Tailwind, Biome), scaffolded with Better-T-Stack. `packages/ui` holds the shared shadcn/ui primitives.
 
 ## Toolchain
@@ -16,11 +16,15 @@ Terms are defined in `GLOSSARY.md`. The design is in `docs/architecture.md`, and
 ## Develop
 
 ```bash
-mise run seed     # create ./apps/server/data/app.db with the jersey 2569 Campaign
+mise run seed     # create ./apps/server/data/app.db with the football 2026 Campaign; its images are embedded in the binary and copied into data/files/images when absent
 mise run dev      # Go server on :8080 with DEV_LOGIN on, Vite on :3001
 ```
 
-Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes any LINE userId instead of LIFF. The dev server also enables the Super Admin as `admin` / `dev-super-admin-pw`; sign in at `/mmtc34/admin-login`, approve Applicants and promote them to Admin.
+Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes any LINE userId instead of LIFF. The dev server also enables the Super Admin as `admin` / `dev-super-admin-pw`; sign in at `/mmtc34/admin-login` and promote Members to Admin.
+
+Admins who signed in with LINE switch between Admin Mode and Member Mode with the toggle in the header. The choice is remembered on the device (`localStorage` key `mode`) and the server never sees it. The Super Admin has no Orders of its own and is always in admin.
+
+Each Campaign picks its bank from a fixed list of Thai banks and can carry an uploaded QR image (for example from K PLUS). The app does not generate a payment QR: bank-account Thai QR (EMVCo tag 29 sub-tag 04) was tried and failed in real banking apps, so Members scan the owner's uploaded QR and type the amount shown on their Order.
 
 | Task | What it runs |
 | --- | --- |
@@ -34,7 +38,7 @@ Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes 
 
 | Variable | Required | Meaning |
 | --- | --- | --- |
-| `BASE_PATH` | no, default `/mmtc34` | URL prefix. Baked into the web build (Docker build arg) and read by the server; the server refuses to start if they differ. |
+| `BASE_PATH` | no, default `/mmtc34` | URL prefix, or `/` (or empty) to serve at the root of a dedicated subdomain. The default applies only when the variable is unset. Baked into the web build (Docker build arg) and read by the server; the server refuses to start if they differ. |
 | `LIFF_ID` | yes, unless `DEV_LOGIN` | LIFF app ID served to the browser. |
 | `LINE_CHANNEL_ID` | yes, unless `DEV_LOGIN` | Channel ID used to verify LIFF ID tokens with LINE. |
 | `SESSION_SECRET` | yes | At least 32 bytes; signs the session cookie. |
@@ -46,11 +50,11 @@ Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes 
 
 ## Deploy
 
-`compose.yaml` runs one container with one volume at `/data`, published on `127.0.0.1:${HOST_PORT:-8080}`. Put the variables above (plus `HOST_PORT` if 8080 is taken) in a `.env` next to it, then:
+`compose.yaml` runs one container with one volume at `/data`, published on `127.0.0.1:${HOST_PORT:-8080}`. Put the variables above (plus `HOST_PORT` if 8080 is taken) in a `.env` next to it. Pending migrations run at startup. Then:
 
 ```bash
 mise run up        # docker compose up -d --build
-mise run up:seed   # once, only to load the example jersey Campaign
+mise run up:seed   # once, only to load the example football 2026 Campaign
 mise run logs      # follow the app log
 mise run tunnel    # Cloudflare quick tunnel to HOST_PORT; prints a new https://*.trycloudflare.com URL
 mise run down
@@ -60,11 +64,21 @@ For a LINE test, set the MINI App channel's Endpoint URL to `<tunnel URL>${BASE_
 
 The gateway must forward `${BASE_PATH}` without stripping it. Backups are the host's job: snapshot the whole `/data` volume, or use `sqlite3 app.db .backup`, never a plain file copy while the app runs.
 
+### Dedicated subdomain
+
+To serve the app at the root of its own hostname, such as `https://mmtc-events.codesook.dev`, put `BASE_PATH=/` in `.env`. `compose.yaml` passes it as both the build arg and the runtime variable, so `mise run up` rebuilds the image for the root and the server starts with the matching value. Then:
+
+- Set the MINI App channel's Endpoint URL to `https://mmtc-events.codesook.dev/`.
+- Sign in as Super Admin at `https://mmtc-events.codesook.dev/admin-login`.
+- The session cookie is scoped to `Path=/`, and the gateway forwards every path to the container.
+
+Changing `BASE_PATH` needs a rebuild (`mise run up`), because the web build bakes the value in.
+
 ### First Admin
 
 1. Open `https://<host>${BASE_PATH}/admin-login` in a normal browser and sign in with `SUPER_ADMIN_USERNAME` / `SUPER_ADMIN_PASSWORD`.
-2. Open the app in LINE with your own account and fill in the profile. You become an Applicant.
-3. As the Super Admin, go to สมาชิก → รออนุมัติ, approve yourself, then open your Member page → แก้ไข and set the role to แอดมิน.
+2. Open the app in LINE with your own account and fill in the profile. You become a Member at once.
+3. As the Super Admin, go to สมาชิก, open your Member page → แก้ไข and set the role to แอดมิน.
 
 Promoted Admins can promote others too. The Super Admin cannot be demoted or deleted; to rotate its password, change `SUPER_ADMIN_PASSWORD` and `SESSION_SECRET` (the latter ends every open session).
 

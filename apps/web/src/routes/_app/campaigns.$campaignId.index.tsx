@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Lock } from "lucide-react";
 
 import { campaignQuery } from "@/api/campaigns";
 import { CampaignOpen } from "@/api/types.gen";
@@ -28,12 +29,18 @@ function CampaignDetail() {
   return (
     <div className="flex flex-col gap-4">
       {!open && (
-        <p role="status" className="bg-muted p-3 text-sm font-medium">
+        <p
+          role="status"
+          className="bg-muted flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium"
+        >
+          <Lock aria-hidden className="text-muted-foreground size-4 shrink-0" />
           ปิดรับแล้ว ติดต่อแอดมิน
         </p>
       )}
       {campaign.description && (
-        <p className="text-sm whitespace-pre-wrap">{campaign.description}</p>
+        <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
+          {campaign.description}
+        </p>
       )}
       <ul className="flex flex-col gap-3">
         {options.map((o) => (

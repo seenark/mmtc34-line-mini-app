@@ -140,7 +140,7 @@ func TestSlipIsReadableOnlyByOwnerAndAdmin(t *testing.T) {
 	Equal(t, bytes.Equal(admin.GET(path).Status(200).Body, JPEG().Bytes), true)
 	bob.GET(path).Status(404)
 	h.Anonymous().GET(path).Status(401)
-	h.Applicant("nok").GET(path).Status(403)
+	h.Visitor("nok").GET(path).Status(403)
 	alice.GET("/api/slips/0123456789abcdef0123456789abcdef.jpg").Status(404)
 	alice.GET("/api/slips/..%2Fapp.db").Status(404)
 }

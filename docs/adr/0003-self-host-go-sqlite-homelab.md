@@ -6,4 +6,5 @@ The original handoff targeted Cloudflare Workers + Hono + D1 + R2 on free tiers.
 
 - No Hono RPC end-to-end types; the frontend gets API types another way.
 - Slips and images live on the homelab's disk next to the SQLite file. Backing them up is the infrastructure's job, not the app's.
-- Public ingress is Cloudflare Tunnel into the gateway on one shared hostname, routed by path, with no subdomain per app. The app must therefore work under a path prefix.
+- A dedicated subdomain does not need the path prefix: `BASE_PATH=/` serves the API at `/api` and the web app at the root, with the session cookie scoped to `/`. The prefix stays the default for the shared hostname.
+- Public ingress is Cloudflare Tunnel. On the shared gateway hostname, apps are routed by path, so the app works under a path prefix; on its own subdomain it runs at the root (previous bullet).

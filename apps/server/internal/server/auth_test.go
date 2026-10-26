@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,26 +41,31 @@ func TestLineLoginStartsSessionWithNoMemberYet(t *testing.T) {
 
 func TestLogoutEndsSession(t *testing.T) {
 	h := New(t)
-	c := h.Applicant("nok")
+	c := h.Member("nok")
 
 	c.POST("/api/auth/logout", nil).Status(204)
 
 	c.GET("/api/me").Status(401)
 }
 
-func TestOnboardingCreatesApplicant(t *testing.T) {
+func TestOnboardingCreatesAMemberWhoCanBrowseCampaignsAtOnce(t *testing.T) {
 	h := New(t)
+	j := h.OpenJersey()
 	c := h.Anonymous()
-	c.POST("/api/auth/dev", api.DevLoginInput{LineUserID: "U-nok"}).Status(204)
+	c.POST("/api/auth/line", api.LineLoginInput{IDToken: "ok:U-nok"}).Status(204)
+	c.GET("/api/campaigns").Status(403)
 
 	m := As[api.Member](c.POST("/api/me", api.ProfileInput{Cohort: " 34 ", Nickname: " nok ", RealName: "Nok Jai"}).Status(201))
 
-	Equal(t, m.Status, api.MemberApplicant)
+	Equal(t, m.Status, api.MemberApproved)
 	Equal(t, m.Role, api.RoleMember)
 	Equal(t, m.Linked, true)
 	Equal(t, m.Nickname, "nok")
 	Equal(t, m.Cohort, "34")
 	Equal(t, c.Me().Member.ID, m.ID)
+	campaigns := As[[]api.Campaign](c.GET("/api/campaigns").Status(200))
+	Equal(t, len(campaigns), 1)
+	Equal(t, campaigns[0].ID, j.Campaign.ID)
 }
 
 func TestOnboardingRejectsBlankRequiredFields(t *testing.T) {
@@ -83,55 +87,17 @@ func TestOnboardingRejectsBlankRequiredFields(t *testing.T) {
 
 func TestSecondOnboardingIs409(t *testing.T) {
 	h := New(t)
-	c := h.Applicant("nok")
+	c := h.Member("nok")
 
 	c.POST("/api/me", api.ProfileInput{Cohort: "34", Nickname: "again", RealName: "Again"}).Status(409)
 }
 
-func TestApplicantCannotUseAdminRoutes(t *testing.T) {
+func TestMemberCannotUseAdminRoutes(t *testing.T) {
 	h := New(t)
-	applicant := h.Applicant("nok")
+	nok := h.Member("nok")
 
-	applicant.GET("/api/admin/members").Status(403)
-	h.Anonymous().GET("/api/admin/members").Status(401)
-}
-
-func TestAdminApprovalLetsApplicantIn(t *testing.T) {
-	h := New(t)
-	admin := h.Admin()
-	nok := h.Applicant("nok")
-	id := nok.Me().Member.ID
-
-	pending := As[[]api.Member](admin.GET("/api/admin/members?status=applicant").Status(200))
-	Equal(t, len(pending), 1)
-	Equal(t, pending[0].ID, id)
-
-	approved := As[api.Member](admin.POST(fmt.Sprintf("/api/admin/members/%d/approve", id), nil).Status(200))
-
-	Equal(t, approved.Status, api.MemberApproved)
-	Equal(t, nok.Me().Member.Status, api.MemberApproved)
-	Equal(t, len(As[[]api.Member](admin.GET("/api/admin/members?status=applicant").Status(200))), 0)
-	Equal(t, As[api.Member](admin.GET(fmt.Sprintf("/api/admin/members/%d", id)).Status(200)).Status, api.MemberApproved)
 	nok.GET("/api/admin/members").Status(403)
-}
-
-func TestAdminRejectDeletesApplicant(t *testing.T) {
-	h := New(t)
-	admin := h.Admin()
-	id := h.Applicant("nok").Me().Member.ID
-
-	admin.POST(fmt.Sprintf("/api/admin/members/%d/reject", id), nil).Status(204)
-
-	admin.GET(fmt.Sprintf("/api/admin/members/%d", id)).Status(404)
-	again := h.Applicant("nok").Me().Member // a rejected person can apply again
-	Equal(t, again.Status, api.MemberApplicant)
-}
-
-func TestRejectingApprovedMemberIs409(t *testing.T) {
-	h := New(t)
-	id := h.Member("nok").Me().Member.ID
-
-	h.Admin().POST(fmt.Sprintf("/api/admin/members/%d/reject", id), nil).Status(409)
+	h.Anonymous().GET("/api/admin/members").Status(401)
 }
 
 func TestProductionLoginSetsSecureCookie(t *testing.T) {
@@ -187,7 +153,7 @@ func TestTamperedCookieIs401(t *testing.T) {
 
 func TestSessionExpiresAfterThirtyDays(t *testing.T) {
 	h := New(t)
-	c := h.Applicant("nok")
+	c := h.Member("nok")
 
 	h.Advance(29 * 24 * time.Hour)
 	c.GET("/api/me").Status(200)

@@ -9,29 +9,6 @@ import (
 	"context"
 )
 
-const approveMember = `-- name: ApproveMember :one
-UPDATE members SET status = 'approved' WHERE id = ?1 AND deleted_at IS NULL RETURNING id, line_user_id, status, role, cohort, nickname, real_name, address, phone, deleted_at, created_at
-`
-
-func (q *Queries) ApproveMember(ctx context.Context, id int64) (Member, error) {
-	row := q.db.QueryRowContext(ctx, approveMember, id)
-	var i Member
-	err := row.Scan(
-		&i.ID,
-		&i.LineUserID,
-		&i.Status,
-		&i.Role,
-		&i.Cohort,
-		&i.Nickname,
-		&i.RealName,
-		&i.Address,
-		&i.Phone,
-		&i.DeletedAt,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const createMember = `-- name: CreateMember :one
 INSERT INTO members (line_user_id, status, role, cohort, nickname, real_name, address, phone, created_at)
 VALUES (?1, ?2, ?3, ?4, ?5,
@@ -78,15 +55,6 @@ func (q *Queries) CreateMember(ctx context.Context, arg CreateMemberParams) (Mem
 		&i.CreatedAt,
 	)
 	return i, err
-}
-
-const deleteApplicant = `-- name: DeleteApplicant :exec
-DELETE FROM members WHERE id = ?1 AND status = 'applicant'
-`
-
-func (q *Queries) DeleteApplicant(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteApplicant, id)
-	return err
 }
 
 const getMember = `-- name: GetMember :one
@@ -136,13 +104,11 @@ func (q *Queries) GetMemberByLineUserID(ctx context.Context, lineUserID *string)
 }
 
 const listMembers = `-- name: ListMembers :many
-SELECT id, line_user_id, status, role, cohort, nickname, real_name, address, phone, deleted_at, created_at FROM members
-WHERE CAST(?1 AS TEXT) = '' OR status = ?1
-ORDER BY id
+SELECT id, line_user_id, status, role, cohort, nickname, real_name, address, phone, deleted_at, created_at FROM members ORDER BY id
 `
 
-func (q *Queries) ListMembers(ctx context.Context, status string) ([]Member, error) {
-	rows, err := q.db.QueryContext(ctx, listMembers, status)
+func (q *Queries) ListMembers(ctx context.Context) ([]Member, error) {
+	rows, err := q.db.QueryContext(ctx, listMembers)
 	if err != nil {
 		return nil, err
 	}

@@ -10,10 +10,10 @@ import (
 )
 
 const createOption = `-- name: CreateOption :one
-INSERT INTO options (campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order)
+INSERT INTO options (campaign_id, name, description, image, size_chart, price, sizes, needs_print_name, needs_number, sort_order)
 VALUES (?1, ?2, ?3, ?4, ?5,
-        ?6, ?7, ?8, ?9)
-RETURNING id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order
+        ?6, ?7, ?8, ?9, ?10)
+RETURNING id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order, size_chart
 `
 
 type CreateOptionParams struct {
@@ -21,6 +21,7 @@ type CreateOptionParams struct {
 	Name           string
 	Description    string
 	Image          string
+	SizeChart      string
 	Price          *int64
 	Sizes          string
 	NeedsPrintName int64
@@ -34,6 +35,7 @@ func (q *Queries) CreateOption(ctx context.Context, arg CreateOptionParams) (Opt
 		arg.Name,
 		arg.Description,
 		arg.Image,
+		arg.SizeChart,
 		arg.Price,
 		arg.Sizes,
 		arg.NeedsPrintName,
@@ -52,6 +54,7 @@ func (q *Queries) CreateOption(ctx context.Context, arg CreateOptionParams) (Opt
 		&i.NeedsPrintName,
 		&i.NeedsNumber,
 		&i.SortOrder,
+		&i.SizeChart,
 	)
 	return i, err
 }
@@ -69,7 +72,7 @@ func (q *Queries) DeleteOption(ctx context.Context, id int64) (int64, error) {
 }
 
 const listOptions = `-- name: ListOptions :many
-SELECT id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order FROM options WHERE campaign_id = ?1 ORDER BY sort_order, id
+SELECT id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order, size_chart FROM options WHERE campaign_id = ?1 ORDER BY sort_order, id
 `
 
 func (q *Queries) ListOptions(ctx context.Context, campaignID int64) ([]Option, error) {
@@ -92,6 +95,7 @@ func (q *Queries) ListOptions(ctx context.Context, campaignID int64) ([]Option, 
 			&i.NeedsPrintName,
 			&i.NeedsNumber,
 			&i.SortOrder,
+			&i.SizeChart,
 		); err != nil {
 			return nil, err
 		}
@@ -108,17 +112,19 @@ func (q *Queries) ListOptions(ctx context.Context, campaignID int64) ([]Option, 
 
 const updateOption = `-- name: UpdateOption :one
 UPDATE options
-SET name = ?1, description = ?2, image = ?3, price = ?4,
-    sizes = ?5, needs_print_name = ?6, needs_number = ?7,
-    sort_order = ?8
-WHERE id = ?9
-RETURNING id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order
+SET name = ?1, description = ?2, image = ?3,
+    size_chart = ?4, price = ?5,
+    sizes = ?6, needs_print_name = ?7, needs_number = ?8,
+    sort_order = ?9
+WHERE id = ?10
+RETURNING id, campaign_id, name, description, image, price, sizes, needs_print_name, needs_number, sort_order, size_chart
 `
 
 type UpdateOptionParams struct {
 	Name           string
 	Description    string
 	Image          string
+	SizeChart      string
 	Price          *int64
 	Sizes          string
 	NeedsPrintName int64
@@ -132,6 +138,7 @@ func (q *Queries) UpdateOption(ctx context.Context, arg UpdateOptionParams) (Opt
 		arg.Name,
 		arg.Description,
 		arg.Image,
+		arg.SizeChart,
 		arg.Price,
 		arg.Sizes,
 		arg.NeedsPrintName,
@@ -151,6 +158,7 @@ func (q *Queries) UpdateOption(ctx context.Context, arg UpdateOptionParams) (Opt
 		&i.NeedsPrintName,
 		&i.NeedsNumber,
 		&i.SortOrder,
+		&i.SizeChart,
 	)
 	return i, err
 }

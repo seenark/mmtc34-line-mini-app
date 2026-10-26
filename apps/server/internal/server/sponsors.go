@@ -85,7 +85,7 @@ func (s *Server) bindSponsor(c *gin.Context) (in api.SponsorInput, nickname stri
 func (s *Server) sponsorMemberNickname(c *gin.Context, id int64) (string, error) {
 	m, err := s.q.GetMember(c.Request.Context(), id)
 	switch {
-	case errors.Is(err, sql.ErrNoRows), err == nil && (m.Status != string(api.MemberApproved) || m.DeletedAt != nil):
+	case errors.Is(err, sql.ErrNoRows), err == nil && m.DeletedAt != nil:
 		return "", &domain.Error{Kind: domain.Invalid, Msg: "ไม่พบสมาชิกที่เลือก"}
 	case err != nil:
 		return "", err

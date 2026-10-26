@@ -2,24 +2,13 @@ package db_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/seenark/mmtc34-line-mini-app/apps/server/internal/db"
 )
 
 func TestSeedAddsJerseySponsorPositionsOnce(t *testing.T) {
-	sqlDB, err := db.Open(filepath.Join(t.TempDir(), "app.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer sqlDB.Close()
-
-	for range 2 {
-		if err := db.Seed(context.Background(), sqlDB); err != nil {
-			t.Fatal(err)
-		}
-	}
+	sqlDB, _ := seedTwice(t)
 
 	q := db.New(sqlDB)
 	camps, err := q.ListCampaigns(context.Background())

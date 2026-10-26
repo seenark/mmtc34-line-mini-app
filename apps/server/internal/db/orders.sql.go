@@ -200,7 +200,7 @@ func (q *Queries) ListItemsForOrders(ctx context.Context, orderIds []int64) ([]L
 const listOrders = `-- name: ListOrders :many
 
 SELECT o.id, o.campaign_id, o.member_id, o.placed_by_admin, o.status, o.delivery, o.ship_name, o.ship_address, o.ship_phone, o.created_at, o.updated_at,
-       c.id, c.group_id, c.type, c.title, c.description, c.cover_image, c.bank_name, c.bank_account_no, c.bank_account_name, c.qr_image, c.status, c.close_at, c.created_at,
+       c.id, c.group_id, c.type, c.title, c.description, c.cover_image, c.bank_account_no, c.bank_account_name, c.qr_image, c.status, c.close_at, c.created_at, c.bank_code,
        m.nickname  AS member_nickname,
        m.real_name AS member_real_name
 FROM orders o
@@ -257,13 +257,13 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 			&i.Campaign.Title,
 			&i.Campaign.Description,
 			&i.Campaign.CoverImage,
-			&i.Campaign.BankName,
 			&i.Campaign.BankAccountNo,
 			&i.Campaign.BankAccountName,
 			&i.Campaign.QrImage,
 			&i.Campaign.Status,
 			&i.Campaign.CloseAt,
 			&i.Campaign.CreatedAt,
+			&i.Campaign.BankCode,
 			&i.MemberNickname,
 			&i.MemberRealName,
 		); err != nil {
@@ -332,6 +332,46 @@ func (q *Queries) ListPaymentsForOrders(ctx context.Context, orderIds []int64) (
 			&i.ReviewedAt,
 			&i.ReviewerNickname,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShipSnapshots = `-- name: ListShipSnapshots :many
+SELECT ship_name, ship_address, ship_phone
+FROM orders
+WHERE member_id = ?1
+  AND delivery = 'ship'
+  AND trim(ship_name) <> '' AND trim(ship_address) <> '' AND trim(ship_phone) <> ''
+ORDER BY id DESC
+`
+
+type ListShipSnapshotsRow struct {
+	ShipName    string
+	ShipAddress string
+	ShipPhone   string
+}
+
+// Shipping triples a Member used on earlier Orders, newest Order first. Erased Orders hold ”
+// and Orders without delivery 'ship' are skipped, so erased or pickup data never resurfaces.
+func (q *Queries) ListShipSnapshots(ctx context.Context, memberID int64) ([]ListShipSnapshotsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listShipSnapshots, memberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListShipSnapshotsRow{}
+	for rows.Next() {
+		var i ListShipSnapshotsRow
+		if err := rows.Scan(&i.ShipName, &i.ShipAddress, &i.ShipPhone); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

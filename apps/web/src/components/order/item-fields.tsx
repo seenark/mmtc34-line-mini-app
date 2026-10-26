@@ -1,11 +1,20 @@
 import { Button } from "@mmtc34/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@mmtc34/ui/components/dialog";
 import { Input } from "@mmtc34/ui/components/input";
 import { Label } from "@mmtc34/ui/components/label";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { useState } from "react";
 
 import type { Option } from "@/api/types.gen";
 import { Field, selectClass } from "@/components/campaign/field";
 import { type ItemDetails, MAX_QUANTITY } from "@/lib/cart";
+import { imageUrl } from "@/lib/image";
 
 export const blankDetails: ItemDetails = {
   size: "",
@@ -14,6 +23,50 @@ export const blankDetails: ItemDetails = {
   quantity: 1,
   amount: null,
 };
+
+/** Mounted only while the dialog is open, so zoom resets on each open. */
+function SizeChartViewer({ image }: { image: string }) {
+  const [zoomed, setZoomed] = useState(false);
+  return (
+    <>
+      <DialogHeader className="flex-row items-center justify-between gap-2 pr-10">
+        <DialogTitle>ตารางไซซ์</DialogTitle>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-pressed={zoomed}
+          onClick={() => setZoomed((z) => !z)}
+        >
+          {zoomed ? <ZoomOut /> : <ZoomIn />}
+          {zoomed ? "ย่อ" : "ขยาย"}
+        </Button>
+      </DialogHeader>
+      <div className="bg-muted max-h-[calc(100dvh-9rem)] overflow-auto overscroll-contain rounded-md border">
+        <img
+          src={imageUrl(image)}
+          alt="ตารางไซซ์"
+          className={zoomed ? "h-auto w-[220%] max-w-none" : "h-auto w-full"}
+        />
+      </div>
+    </>
+  );
+}
+
+function SizeChartButton({ image }: { image: string }) {
+  return (
+    <Dialog>
+      <DialogTrigger
+        render={<Button type="button" variant="outline" className="shrink-0" />}
+      >
+        ดูตารางไซซ์
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <SizeChartViewer image={image} />
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /**
  * The inputs an Option asks for (size, print name, number, or an amount for no-price Options)
@@ -31,7 +84,11 @@ export function ItemFields(props: {
   return (
     <div className="flex flex-col gap-3">
       {o.sizes.length > 0 && (
-        <Field label="ขนาด" required>
+        <Field
+          label="ขนาด"
+          required
+          aside={o.sizeChart && <SizeChartButton image={o.sizeChart} />}
+        >
           <select
             id={`${id}-size`}
             required
@@ -89,7 +146,9 @@ export function ItemFields(props: {
         </Field>
       ) : (
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={`${id}-quantity`}>จำนวน</Label>
+          <Label htmlFor={`${id}-quantity`} className="font-medium">
+            จำนวน
+          </Label>
           <div className="flex items-center gap-1">
             <Button
               type="button"
@@ -109,7 +168,7 @@ export function ItemFields(props: {
               min={1}
               max={MAX_QUANTITY}
               step={1}
-              className="w-14 text-center"
+              className="w-14 text-center tabular-nums"
               value={value.quantity}
               onChange={(e) => set({ quantity: Number(e.target.value) })}
             />

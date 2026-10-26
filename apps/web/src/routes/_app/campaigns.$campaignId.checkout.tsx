@@ -1,7 +1,5 @@
 import { Button, buttonVariants } from "@mmtc34/ui/components/button";
 import { Card, CardContent } from "@mmtc34/ui/components/card";
-import { Input } from "@mmtc34/ui/components/input";
-import { Textarea } from "@mmtc34/ui/components/textarea";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
@@ -9,38 +7,38 @@ import { useId, useState } from "react";
 import { campaignQuery } from "@/api/campaigns";
 import { errorText } from "@/api/me";
 import { useCheckout } from "@/api/orders";
-import {
-  CampaignOpen,
-  type Delivery,
-  DeliveryPickup,
-  DeliveryShip,
-} from "@/api/types.gen";
-import { Field } from "@/components/campaign/field";
+import { myAddressesQuery } from "@/api/profile";
+import { CampaignOpen, type Delivery, DeliveryShip } from "@/api/types.gen";
 import { priceText } from "@/components/campaign/option-card";
+import { useShipAddress } from "@/components/order/address-picker";
+import {
+  DeliverySection,
+  deliveryInput,
+  isDonationOnly,
+} from "@/components/order/delivery-section";
 import { ItemFields } from "@/components/order/item-fields";
 import { estimateTotal, useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/_app/campaigns/$campaignId/checkout")({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(campaignQuery(params.campaignId)),
+    Promise.all([
+      context.queryClient.ensureQueryData(campaignQuery(params.campaignId)),
+      context.queryClient.ensureQueryData(myAddressesQuery),
+    ]),
   component: Checkout,
 });
 
 function Checkout() {
   const { campaignId } = Route.useParams();
-  const { member } = Route.useRouteContext();
   const {
     data: { campaign, options },
   } = useSuspenseQuery(campaignQuery(campaignId));
+  const { data: addresses } = useSuspenseQuery(myAddressesQuery);
   const cart = useCart(campaignId);
   const place = useCheckout(campaignId, cart.clear);
   const id = useId();
-  const [delivery, setDelivery] = useState<Delivery>(DeliveryShip);
-  const [ship, setShip] = useState({
-    name: member.realName,
-    address: member.address,
-    phone: member.phone,
-  });
+  const [method, setMethod] = useState<Delivery>(DeliveryShip);
+  const address = useShipAddress(addresses);
   const back = (
     <Link
       to="/campaigns/$campaignId"
@@ -54,7 +52,10 @@ function Checkout() {
   if (campaign.status !== CampaignOpen) {
     return (
       <div className="flex flex-col gap-4">
-        <p role="status" className="bg-muted p-3 text-sm font-medium">
+        <p
+          role="status"
+          className="bg-muted rounded-md p-3 text-sm font-medium"
+        >
           ปิดรับแล้ว ติดต่อแอดมิน
         </p>
         {back}
@@ -72,23 +73,20 @@ function Checkout() {
 
   const byId = new Map(options.map((o) => [o.id, o]));
   const missing = cart.lines.some((l) => !byId.has(l.optionId));
-  const shipping = delivery === DeliveryShip;
+  const donationOnly = isDonationOnly(cart.lines, byId);
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6"
       onSubmit={(e) => {
         e.preventDefault();
         place.mutate({
-          delivery,
-          shipName: shipping ? ship.name.trim() : "",
-          shipAddress: shipping ? ship.address.trim() : "",
-          shipPhone: shipping ? ship.phone.trim() : "",
+          ...deliveryInput(donationOnly, method, address),
           items: cart.lines.map((l) => ({ id: null, ...l })),
         });
       }}
     >
-      <h2 className="text-xl font-semibold">ตะกร้าสินค้า</h2>
+      <h1 className="text-primary text-2xl font-extrabold">ตะกร้าสินค้า</h1>
       <ul className="flex flex-col gap-3">
         {cart.lines.map((l, i) => {
           const o = byId.get(l.optionId);
@@ -99,7 +97,7 @@ function Checkout() {
               <Card>
                 <CardContent className="flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium">
+                    <span className="min-w-0 text-sm font-semibold [overflow-wrap:anywhere]">
                       {o?.name ?? "ตัวเลือกนี้ไม่มีแล้ว"}
                     </span>
                     {o && (
@@ -130,61 +128,16 @@ function Checkout() {
         })}
       </ul>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-medium">การรับสินค้า</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {(
-            [
-              [DeliveryShip, "จัดส่ง"],
-              [DeliveryPickup, "รับเอง"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              variant={delivery === value ? "default" : "outline"}
-              aria-pressed={delivery === value}
-              onClick={() => setDelivery(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-        {shipping && (
-          <>
-            <Field label="ชื่อผู้รับ" required>
-              <Input
-                id={`${id}-shipName`}
-                required
-                autoComplete="name"
-                value={ship.name}
-                onChange={(e) => setShip({ ...ship, name: e.target.value })}
-              />
-            </Field>
-            <Field label="ที่อยู่จัดส่ง" required>
-              <Textarea
-                id={`${id}-shipAddress`}
-                required
-                autoComplete="street-address"
-                value={ship.address}
-                onChange={(e) => setShip({ ...ship, address: e.target.value })}
-              />
-            </Field>
-            <Field label="เบอร์โทร" required>
-              <Input
-                id={`${id}-shipPhone`}
-                type="tel"
-                required
-                autoComplete="tel"
-                value={ship.phone}
-                onChange={(e) => setShip({ ...ship, phone: e.target.value })}
-              />
-            </Field>
-          </>
-        )}
-      </fieldset>
+      <DeliverySection
+        id={id}
+        donationOnly={donationOnly}
+        method={method}
+        onMethod={setMethod}
+        address={address}
+        autofill
+      />
 
-      <p className="text-sm">
+      <p className="border-t pt-4 text-sm">
         ยอดประมาณ{" "}
         <span className="font-semibold">
           {priceText(estimateTotal(options, cart.lines))}

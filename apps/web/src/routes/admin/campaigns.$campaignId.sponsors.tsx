@@ -12,7 +12,7 @@ export const Route = createFileRoute("/admin/campaigns/$campaignId/sponsors")({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(sponsorsQuery(params.campaignId)),
-      context.queryClient.ensureQueryData(membersQuery("approved")),
+      context.queryClient.ensureQueryData(membersQuery),
     ]),
   component: AdminSponsors,
 });

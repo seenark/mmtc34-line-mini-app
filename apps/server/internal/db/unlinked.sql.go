@@ -9,38 +9,34 @@ import (
 	"context"
 )
 
-const linkMember = `-- name: LinkMember :one
-
-UPDATE members
-SET line_user_id = ?1,
-    cohort       = COALESCE(NULLIF(CAST(?2 AS TEXT), ''), cohort),
-    real_name    = COALESCE(NULLIF(CAST(?3 AS TEXT), ''), real_name),
-    address      = COALESCE(NULLIF(CAST(?4 AS TEXT), ''), address),
-    phone        = COALESCE(NULLIF(CAST(?5 AS TEXT), ''), phone)
-WHERE id = ?6 AND line_user_id IS NULL AND deleted_at IS NULL
-RETURNING id, line_user_id, status, role, cohort, nickname, real_name, address, phone, deleted_at, created_at
+const countMemberOrders = `-- name: CountMemberOrders :one
+SELECT COUNT(*) FROM orders WHERE member_id = ?1
 `
 
-type LinkMemberParams struct {
-	LineUserID *string
-	Cohort     string
-	RealName   string
-	Address    string
-	Phone      string
-	ID         int64
+func (q *Queries) CountMemberOrders(ctx context.Context, memberID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMemberOrders, memberID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
+const deleteUnlinkedMember = `-- name: DeleteUnlinkedMember :exec
+DELETE FROM members WHERE id = ?1 AND line_user_id IS NULL
+`
+
+func (q *Queries) DeleteUnlinkedMember(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUnlinkedMember, id)
+	return err
+}
+
+const getOrderOwner = `-- name: GetOrderOwner :one
+
+SELECT m.id, m.line_user_id, m.status, m.role, m.cohort, m.nickname, m.real_name, m.address, m.phone, m.deleted_at, m.created_at FROM members m JOIN orders o ON o.member_id = m.id WHERE o.id = ?1
+`
+
 // Creating an Unlinked Member reuses CreateMember with a NULL line_user_id.
-// Blank Applicant fields keep what the Admin already recorded for the Unlinked Member.
-func (q *Queries) LinkMember(ctx context.Context, arg LinkMemberParams) (Member, error) {
-	row := q.db.QueryRowContext(ctx, linkMember,
-		arg.LineUserID,
-		arg.Cohort,
-		arg.RealName,
-		arg.Address,
-		arg.Phone,
-		arg.ID,
-	)
+func (q *Queries) GetOrderOwner(ctx context.Context, orderID int64) (Member, error) {
+	row := q.db.QueryRowContext(ctx, getOrderOwner, orderID)
 	var i Member
 	err := row.Scan(
 		&i.ID,
@@ -56,4 +52,53 @@ func (q *Queries) LinkMember(ctx context.Context, arg LinkMemberParams) (Member,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const moveMemberOrders = `-- name: MoveMemberOrders :execrows
+UPDATE orders SET member_id = ?1 WHERE member_id = ?2
+`
+
+type MoveMemberOrdersParams struct {
+	ToMemberID   int64
+	FromMemberID int64
+}
+
+func (q *Queries) MoveMemberOrders(ctx context.Context, arg MoveMemberOrdersParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, moveMemberOrders, arg.ToMemberID, arg.FromMemberID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const moveOrder = `-- name: MoveOrder :execrows
+UPDATE orders SET member_id = ?1 WHERE id = ?2
+`
+
+type MoveOrderParams struct {
+	ToMemberID int64
+	OrderID    int64
+}
+
+func (q *Queries) MoveOrder(ctx context.Context, arg MoveOrderParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, moveOrder, arg.ToMemberID, arg.OrderID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const moveSponsorPositions = `-- name: MoveSponsorPositions :exec
+UPDATE sponsor_positions SET member_id = ?1 WHERE member_id = ?2
+`
+
+type MoveSponsorPositionsParams struct {
+	ToMemberID   *int64
+	FromMemberID *int64
+}
+
+// Runs before the Unlinked Member is deleted so ON DELETE SET NULL does not drop the assignment.
+func (q *Queries) MoveSponsorPositions(ctx context.Context, arg MoveSponsorPositionsParams) error {
+	_, err := q.db.ExecContext(ctx, moveSponsorPositions, arg.ToMemberID, arg.FromMemberID)
+	return err
 }

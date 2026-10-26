@@ -12,20 +12,21 @@ import (
 )
 
 // CheckSPABase fails startup when index.html was built for another BASE_PATH
-// (it must reference "<basePath>/assets/"). An absent index, or one without assets
-// (web not built, e.g. in `go test`), passes and spaHandler serves 503.
+// (it must reference "<basePath>/assets/", basePath empty at the root). An absent index, or one
+// without assets (web not built, e.g. in `go test`), passes and spaHandler serves 503.
 func CheckSPABase(dist fs.FS, basePath string) error {
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
 		return nil
 	}
-	if bytes.Contains(index, []byte("/assets/")) && !bytes.Contains(index, []byte(basePath+"/assets/")) {
+	if bytes.Contains(index, []byte("/assets/")) && !bytes.Contains(index, []byte(`"`+basePath+"/assets/")) {
 		return fmt.Errorf("embedded web app was not built for BASE_PATH %q; rebuild it with the same BASE_PATH", basePath)
 	}
 	return nil
 }
 
-// spaHandler is the router's NoRoute:
+// spaHandler is the router's NoRoute. basePath is "" at the root, where the first two cases
+// cannot occur:
 //   - outside <basePath>                -> 404
 //   - exactly <basePath>                -> 301 to <basePath>/
 //   - under <basePath>/api/             -> 404 JSON {error}

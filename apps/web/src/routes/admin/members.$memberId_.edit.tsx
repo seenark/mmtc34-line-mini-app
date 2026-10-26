@@ -20,16 +20,19 @@ function EditMember() {
   const { data: m } = useSuspenseQuery(memberQuery(memberId));
   const edit = useAdminEditMember(memberId);
   return (
-    <div className="flex flex-col gap-6">
-      <Link
-        to="/admin/members/$memberId"
-        params={{ memberId }}
-        className="text-sm underline"
-      >
-        ← {m.nickname}
-      </Link>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-1">
+        <Link
+          to="/admin/members/$memberId"
+          params={{ memberId }}
+          className="text-secondary inline-flex min-h-9 w-fit max-w-full items-center text-sm font-medium underline-offset-4 transition-colors hover:underline active:opacity-70"
+        >
+          <span className="truncate">← {m.nickname}</span>
+        </Link>
+        <h1 className="text-primary text-2xl font-extrabold">แก้ไขสมาชิก</h1>
+      </div>
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">ข้อมูลสมาชิก</h2>
+        <h2 className="text-base font-semibold">ข้อมูลสมาชิก</h2>
         {/* keyed by the saved record so the fields reset to what the server stored */}
         <ProfileForm
           key={`${m.id}:${m.nickname}:${m.cohort}:${m.realName}:${m.address}:${m.phone}`}
@@ -41,7 +44,7 @@ function EditMember() {
           onSubmit={(input) => edit.mutate(input)}
         />
         {edit.isSuccess && (
-          <p role="status" className="text-sm">
+          <p role="status" className="text-secondary text-sm font-medium">
             บันทึกข้อมูลแล้ว
           </p>
         )}
@@ -65,7 +68,7 @@ function RoleToggle(props: {
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">บทบาท</h2>
+        <h2 className="text-base font-semibold">บทบาท</h2>
         <div className="flex gap-2">
           {[RoleMember, RoleAdmin].map((r) => (
             <Button
@@ -87,7 +90,7 @@ function RoleToggle(props: {
           </p>
         )}
         {confirming && (
-          <div className="flex flex-col gap-2">
+          <div className="bg-muted flex flex-col gap-3 rounded-md p-3">
             <p className="text-sm font-medium">
               เปลี่ยนบทบาทของ {props.nickname} เป็น{nextLabel}?
             </p>

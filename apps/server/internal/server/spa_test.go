@@ -16,15 +16,19 @@ func TestCheckSPABase(t *testing.T) {
 	cases := []struct {
 		name    string
 		dist    fstest.MapFS
+		base    string
 		wantErr bool
 	}{
-		{"matching base", built("/x"), false},
-		{"other base", built("/mmtc34"), true},
-		{"web not built", fstest.MapFS{"index.html": {Data: []byte("<html></html>")}}, false},
-		{"no index", fstest.MapFS{".keep": {}}, false},
+		{"matching base", built("/x"), "/x", false},
+		{"other base", built("/mmtc34"), "/x", true},
+		{"web not built", fstest.MapFS{"index.html": {Data: []byte("<html></html>")}}, "/x", false},
+		{"no index", fstest.MapFS{".keep": {}}, "/x", false},
+		{"root build at root", built(""), "", false},
+		{"prefixed build at root", built("/mmtc34"), "", true},
+		{"root build under prefix", built(""), "/x", true},
 	}
 	for _, tc := range cases {
-		if err := CheckSPABase(tc.dist, "/x"); (err != nil) != tc.wantErr {
+		if err := CheckSPABase(tc.dist, tc.base); (err != nil) != tc.wantErr {
 			t.Errorf("%s: err = %v, wantErr %v", tc.name, err, tc.wantErr)
 		}
 	}
@@ -63,6 +67,39 @@ func TestSPAHandler(t *testing.T) {
 	engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x/campaigns/1", nil))
 	if rec.Body.String() != "<html>app</html>" {
 		t.Errorf("client route body = %q, want index.html", rec.Body.String())
+	}
+}
+
+func TestSPAHandlerAtRoot(t *testing.T) {
+	dist := fstest.MapFS{
+		"index.html":  {Data: []byte("<html>app</html>")},
+		"assets/a.js": {Data: []byte("js")},
+	}
+	engine := gin.New()
+	engine.NoRoute(spaHandler(dist, ""))
+
+	cases := []struct {
+		method, path string
+		code         int
+		cache        string
+		body         string
+	}{
+		{"GET", "/", 200, "no-cache", "<html>app</html>"},
+		{"GET", "/orders/1", 200, "no-cache", "<html>app</html>"},
+		{"GET", "/assets/a.js", 200, "public, max-age=31536000, immutable", "js"},
+		{"GET", "/api", 404, "", ""},
+		{"GET", "/api/anything", 404, "", ""},
+		{"POST", "/orders", 404, "", ""},
+	}
+	for _, tc := range cases {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+		if rec.Code != tc.code || rec.Header().Get("Cache-Control") != tc.cache {
+			t.Errorf("%s %s: got %d %q, want %d %q", tc.method, tc.path, rec.Code, rec.Header().Get("Cache-Control"), tc.code, tc.cache)
+		}
+		if tc.body != "" && rec.Body.String() != tc.body {
+			t.Errorf("%s %s: body = %q, want %q", tc.method, tc.path, rec.Body.String(), tc.body)
+		}
 	}
 }
 

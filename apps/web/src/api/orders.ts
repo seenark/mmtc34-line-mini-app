@@ -6,6 +6,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 
 import { api } from "./client";
+import { myAddressesQuery } from "./profile";
 import type { Order, OrderInput } from "./types.gen";
 
 export const ordersQuery = queryOptions({
@@ -29,7 +30,10 @@ export function useCheckout(campaignId: string, onPlaced: () => void) {
     onSuccess: async (order) => {
       onPlaced();
       qc.setQueryData(orderQuery(String(order.id)).queryKey, order);
-      await qc.invalidateQueries({ queryKey: ordersQuery.queryKey });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ordersQuery.queryKey }),
+        qc.invalidateQueries({ queryKey: myAddressesQuery.queryKey }),
+      ]);
       await navigate({
         to: "/orders/$orderId",
         params: { orderId: String(order.id) },

@@ -12,14 +12,25 @@ export function SponsorCard(props: { position: SponsorPosition }) {
           <img
             src={imageUrl(p.logo)}
             alt={p.sponsorName}
-            className="size-16 shrink-0 object-contain"
+            loading="lazy"
+            className="bg-muted size-16 shrink-0 rounded-md object-contain p-1"
           />
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-medium">{p.name}</span>
-          <span className="text-sm">{p.sponsorName || "ว่าง"}</span>
+          <span className="text-muted-foreground text-sm [overflow-wrap:anywhere]">
+            {p.name}
+          </span>
+          {p.sponsorName ? (
+            <span className="text-primary text-base font-semibold [overflow-wrap:anywhere]">
+              {p.sponsorName}
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-base">ว่าง</span>
+          )}
           {p.memberNickname && (
-            <span className="text-muted-foreground">{p.memberNickname}</span>
+            <span className="text-muted-foreground text-sm [overflow-wrap:anywhere]">
+              {p.memberNickname}
+            </span>
           )}
         </div>
       </CardContent>

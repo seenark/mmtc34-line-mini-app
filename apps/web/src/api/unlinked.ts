@@ -1,36 +1,54 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { api } from "./client";
-import type { LinkInput, Member, ProfileInput } from "./types.gen";
+import type {
+  Member,
+  OrderLinkInfo,
+  OrderLinkInput,
+  OrderLinkResult,
+  ProfileInput,
+} from "./types.gen";
 
-/** Both writes change Member rows (a new one, or an Applicant folded into an Unlinked Member). */
-function useMemberWrite<V>(
-  send: (v: V) => Promise<Member>,
-  memberId: (v: V, m: Member) => string,
-) {
+/** Adds an Unlinked Member (nickname only); the caller decides where to go next. */
+export function useCreateUnlinkedMember() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   return useMutation({
-    mutationFn: send,
-    onSuccess: async (m, v) => {
-      await qc.invalidateQueries({ queryKey: ["admin", "members"] });
-      await navigate({
-        to: "/admin/members/$memberId",
-        params: { memberId: memberId(v, m) },
-      });
-    },
+    mutationFn: (input: ProfileInput) =>
+      api<Member>("POST", "/admin/members", input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "members"] }),
   });
 }
 
-export const useCreateUnlinkedMember = () =>
-  useMemberWrite<ProfileInput>(
-    (input) => api<Member>("POST", "/admin/members", input),
-    (_, m) => String(m.id),
-  );
+/** Who owns the Order and how many of their other Orders a link could move. 409 once the owner has LINE. */
+export const orderLinkInfoQuery = (orderId: string) =>
+  queryOptions({
+    queryKey: ["admin", "order-link", orderId],
+    queryFn: () => api<OrderLinkInfo>("GET", `/admin/orders/${orderId}/link`),
+  });
 
-export const useLinkMember = (memberId: string) =>
-  useMemberWrite<LinkInput>(
-    (input) => api<Member>("POST", `/admin/members/${memberId}/link`, input),
-    () => memberId,
-  );
+/**
+ * Moves the Order (or all of the Unlinked Member's Orders) to a Member who has a LINE account.
+ * `onLinked` runs before the invalidations: their refetch unmounts the dialog, and a mutate-level
+ * callback does not fire once its component is gone.
+ */
+export function useLinkOrder(
+  orderId: string,
+  onLinked: (result: OrderLinkResult) => void,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: OrderLinkInput) =>
+      api<OrderLinkResult>("POST", `/admin/orders/${orderId}/link`, input),
+    onSuccess: async (result) => {
+      onLinked(result);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["orders"] }),
+        qc.invalidateQueries({ queryKey: ["admin"] }),
+      ]);
+    },
+  });
+}

@@ -38,6 +38,16 @@ JOIN members m ON m.id = a.created_by
 WHERE a.order_id IN (sqlc.slice(order_ids))
 ORDER BY a.order_id, a.id;
 
+-- name: ListShipSnapshots :many
+-- Shipping triples a Member used on earlier Orders, newest Order first. Erased Orders hold ''
+-- and Orders without delivery 'ship' are skipped, so erased or pickup data never resurfaces.
+SELECT ship_name, ship_address, ship_phone
+FROM orders
+WHERE member_id = sqlc.arg(member_id)
+  AND delivery = 'ship'
+  AND trim(ship_name) <> '' AND trim(ship_address) <> '' AND trim(ship_phone) <> ''
+ORDER BY id DESC;
+
 -- name: InsertOrder :one
 INSERT INTO orders (campaign_id, member_id, placed_by_admin, status, delivery,
                     ship_name, ship_address, ship_phone, created_at, updated_at)

@@ -42,7 +42,7 @@ function useLedgerMutation<T>(
       api<Order>("POST", `/admin/orders/${orderId}/${path}`, body(input)),
     onSuccess: async (order) => {
       await settle(qc, order);
-      await navigate({ to: "/orders/$orderId", params: { orderId } });
+      await navigate({ to: "/admin/orders/$orderId", params: { orderId } });
     },
   });
 }

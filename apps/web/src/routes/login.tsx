@@ -7,6 +7,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { enforceStage, errorText, meQuery } from "@/api/me";
+import { AuthShell } from "@/components/auth-shell";
 import { configQuery, devSignIn, signIn } from "@/lib/liff";
 
 export const Route = createFileRoute("/login")({
@@ -37,8 +38,10 @@ function Login() {
   }, [config.devLogin, mutate]);
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">แคมเปญห้องเรียน</h1>
+    <AuthShell
+      heading="MMTC Events"
+      lede="เข้าสู่ระบบด้วยบัญชี LINE เพื่อดูอีเวนต์และสั่งซื้อ"
+    >
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -47,7 +50,7 @@ function Login() {
         }}
       >
         {config.devLogin && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="lineUserId">LINE userId (โหมดทดสอบ)</Label>
             <Input
               id="lineUserId"
@@ -68,10 +71,13 @@ function Login() {
         </Button>
       </form>
       {config.adminLogin && (
-        <Link to="/admin-login" className="text-center text-sm underline">
+        <Link
+          to="/admin-login"
+          className="text-secondary flex h-11 items-center justify-center rounded-md text-sm font-semibold underline-offset-4 hover:underline"
+        >
           เข้าสู่ระบบผู้ดูแลระบบ
         </Link>
       )}
-    </main>
+    </AuthShell>
   );
 }

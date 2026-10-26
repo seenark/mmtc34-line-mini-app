@@ -157,7 +157,7 @@ func (s *Server) me(c *gin.Context) {
 	c.JSON(http.StatusOK, me)
 }
 
-// onboard creates the Applicant. 409 if this LINE userId already has a Member.
+// onboard creates the Member (open membership, ADR 0006). 409 if this LINE userId already has one.
 func (s *Server) onboard(c *gin.Context) {
 	in, ok := bind[api.ProfileInput](c)
 	if !ok {
@@ -180,7 +180,7 @@ func (s *Server) onboard(c *gin.Context) {
 		}
 		m, err = q.CreateMember(c.Request.Context(), db.CreateMemberParams{
 			LineUserID: &lineUserID,
-			Status:     string(api.MemberApplicant),
+			Status:     string(api.MemberApproved),
 			Role:       string(api.RoleMember),
 			Cohort:     in.Cohort,
 			Nickname:   in.Nickname,

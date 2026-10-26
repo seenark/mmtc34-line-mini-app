@@ -8,7 +8,7 @@ RETURNING *;
 
 -- name: SetMemberRole :one
 UPDATE members SET role = sqlc.arg(role)
-WHERE id = sqlc.arg(id) AND status = 'approved' AND deleted_at IS NULL
+WHERE id = sqlc.arg(id) AND deleted_at IS NULL
 RETURNING *;
 
 -- name: EraseMember :exec

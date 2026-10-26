@@ -39,7 +39,7 @@ func runSeed() error {
 		return err
 	}
 	defer sqlDB.Close()
-	return db.Seed(context.Background(), sqlDB)
+	return db.Seed(context.Background(), sqlDB, dir)
 }
 
 func run() error {

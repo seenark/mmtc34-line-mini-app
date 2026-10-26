@@ -1,3 +1,4 @@
+import { Empty, EmptyDescription } from "@mmtc34/ui/components/empty";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -17,7 +18,11 @@ function Sponsors() {
   const { campaignId } = Route.useParams();
   const { data: positions } = useSuspenseQuery(sponsorsQuery(campaignId));
   if (positions.length === 0) {
-    return <p className="text-muted-foreground text-sm">ยังไม่มีตำแหน่งสปอนเซอร์</p>;
+    return (
+      <Empty className="flex-none rounded-xl border">
+        <EmptyDescription>ยังไม่มีตำแหน่งสปอนเซอร์</EmptyDescription>
+      </Empty>
+    );
   }
   return (
     <ul className="flex flex-col gap-3">

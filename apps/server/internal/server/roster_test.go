@@ -71,13 +71,13 @@ func TestRosterIsEmptyArrayWithoutEligibleOrders(t *testing.T) {
 	Equal(t, alice.GET(rosterPath(j.Campaign.ID)).Status(200).Text(), "[]")
 }
 
-func TestRosterIsForApprovedMembersOfVisibleCampaigns(t *testing.T) {
+func TestRosterIsForMembersOfVisibleCampaigns(t *testing.T) {
 	h := New(t)
 	alice, admin := h.Member("alice"), h.Admin()
 	j := h.OpenJersey()
 	d := As[api.Campaign](admin.POST("/api/admin/campaigns", draft("ร่าง")).Status(201))
 
-	h.Applicant("nok").GET(rosterPath(j.Campaign.ID)).Status(403)
+	h.Visitor("nok").GET(rosterPath(j.Campaign.ID)).Status(403)
 	h.Anonymous().GET(rosterPath(j.Campaign.ID)).Status(401)
 	alice.GET(rosterPath(d.ID)).Status(404)
 	alice.GET(rosterPath(9999)).Status(404)

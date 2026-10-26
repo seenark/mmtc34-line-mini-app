@@ -4,12 +4,14 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { campaignOrdersQuery } from "@/api/ledger";
+import { membersQuery } from "@/api/members";
 import {
   OrderAwaitingPayment,
   OrderCancelled,
   OrderPaid,
   OrderPendingReview,
 } from "@/api/types.gen";
+import { LinkOrderDialog } from "@/components/order/link-order-dialog";
 import {
   baht,
   balanceLabel,
@@ -33,9 +35,12 @@ export const Route = createFileRoute("/admin/campaigns/$campaignId/orders")({
   }),
   loaderDeps: ({ search }) => ({ status: search.status }),
   loader: ({ context, params, deps }) =>
-    context.queryClient.ensureQueryData(
-      campaignOrdersQuery(params.campaignId, deps.status),
-    ),
+    Promise.all([
+      context.queryClient.ensureQueryData(
+        campaignOrdersQuery(params.campaignId, deps.status),
+      ),
+      context.queryClient.ensureQueryData(membersQuery),
+    ]),
   component: CampaignOrders,
 });
 
@@ -44,6 +49,10 @@ function CampaignOrders() {
   const { status } = Route.useSearch();
   const { data: orders } = useSuspenseQuery(
     campaignOrdersQuery(campaignId, status),
+  );
+  const { data: members } = useSuspenseQuery(membersQuery);
+  const unlinkedIds = new Set(
+    members.filter((m) => !m.linked && !m.deleted).map((m) => m.id),
   );
   // balances are the server's Order.Money(); only the display total is summed here
   const owed = orders.reduce((sum, o) => sum + Math.max(o.balance, 0), 0);
@@ -71,23 +80,32 @@ function CampaignOrders() {
       <ul className="flex flex-col gap-2">
         {orders.map((o) => (
           <li key={o.id}>
-            <Link to="/orders/$orderId" params={{ orderId: String(o.id) }}>
-              <Card>
-                <CardContent className="flex flex-col gap-1.5">
+            <Card>
+              <CardContent className="flex flex-col gap-3">
+                <Link
+                  to="/admin/orders/$orderId"
+                  params={{ orderId: String(o.id) }}
+                  className="flex min-w-0 flex-col gap-1.5 rounded-md"
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">
+                    <span className="min-w-0 font-semibold break-words">
                       #{o.id} {o.memberNickname}
+                      {unlinkedIds.has(o.memberId) && (
+                        <span className="bg-muted text-muted-foreground ml-2 rounded-full px-2 py-0.5 text-xs font-normal whitespace-nowrap">
+                          ไม่มี LINE
+                        </span>
+                      )}
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
                       {o.placedByAdmin && (
-                        <span className="border px-2 py-0.5 text-xs">
+                        <span className="rounded-full border px-2 py-0.5 text-xs whitespace-nowrap">
                           แอดมินสั่งแทน
                         </span>
                       )}
                       <OrderStatusBadge status={o.status} />
                     </span>
                   </div>
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-sm break-words">
                     {o.items
                       .map(
                         (i) =>
@@ -105,9 +123,12 @@ function CampaignOrders() {
                       {balanceLabel(o.balance)}
                     </dd>
                   </dl>
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
+                {unlinkedIds.has(o.memberId) && (
+                  <LinkOrderDialog orderId={o.id} />
+                )}
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>

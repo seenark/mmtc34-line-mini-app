@@ -1,11 +1,21 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { clearAllCarts } from "@/lib/cart";
 
 import { api } from "./client";
 import { meQuery } from "./me";
-import type { Member, ProfileInput, Role } from "./types.gen";
+import type { AddressChoice, Member, ProfileInput, Role } from "./types.gen";
+
+/** Shipping triples to offer at checkout: the profile, then earlier Orders. Refetched after an Order is placed. */
+export const myAddressesQuery = queryOptions({
+  queryKey: ["me", "addresses"],
+  queryFn: () => api<AddressChoice[]>("GET", "/me/addresses"),
+});
 
 export function useUpdateProfile() {
   const qc = useQueryClient();

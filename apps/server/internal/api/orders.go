@@ -14,7 +14,16 @@ type Delivery string
 const (
 	DeliveryShip   Delivery = "ship"
 	DeliveryPickup Delivery = "pickup"
+	DeliveryNone   Delivery = "none" // donation-only Orders: required there, invalid elsewhere
 )
+
+// AddressChoice is one shipping triple offered at checkout: the profile, or the snapshot of an
+// earlier Order. Choosing it only copies it onto the new Order.
+type AddressChoice struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Phone   string `json:"phone"`
+}
 
 type ItemInput struct {
 	ID        *int64 `json:"id"` // Admin edit only: existing Item keeps its captured unit price

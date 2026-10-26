@@ -1,6 +1,7 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
 import { Textarea } from "@mmtc34/ui/components/textarea";
+import { Loader2 } from "lucide-react";
 
 import type { ProfileInput } from "@/api/types.gen";
 import { Field } from "@/components/campaign/field";
@@ -81,11 +82,17 @@ export function ProfileForm(props: {
         />
       </Field>
       {props.error && (
-        <p role="alert" className="text-destructive text-sm">
+        <p
+          role="alert"
+          className="bg-destructive/10 text-destructive rounded-md px-3 py-2 text-sm"
+        >
           {props.error}
         </p>
       )}
       <Button type="submit" size="lg" disabled={props.pending}>
+        {props.pending && (
+          <Loader2 aria-hidden className="motion-safe:animate-spin" />
+        )}
         {props.submitLabel}
       </Button>
     </form>
