@@ -58,3 +58,20 @@ run = "go build -trimpath -o ../../bin/mmtc34 ."
 
 [tasks.docker]
 run = "docker build -t mmtc34 ."
+
+# Production-like run from .env (DEV_LOGIN off, real LINE login). See README "Deploy".
+[tasks.up]
+run = "docker compose up -d --build && docker compose ps"
+
+[tasks.down]
+run = "docker compose down"
+
+[tasks.logs]
+run = "docker compose logs -f app"
+
+[tasks."up:seed"]
+run = "docker compose run --rm app seed"
+
+# Cloudflare quick tunnel to the compose app; prints a new https://*.trycloudflare.com URL each start.
+[tasks.tunnel]
+run = 'port=$(sed -n "s/^HOST_PORT=//p" .env); cloudflared tunnel --no-autoupdate --url "http://localhost:${port:-8080}"'

@@ -46,12 +46,17 @@ Open `http://localhost:3001/mmtc34/`. With `DEV_LOGIN` on, the login page takes 
 
 ## Deploy
 
-`compose.yaml` runs one container with one volume at `/data`. Put the variables above in a `.env` next to it, then:
+`compose.yaml` runs one container with one volume at `/data`, published on `127.0.0.1:${HOST_PORT:-8080}`. Put the variables above (plus `HOST_PORT` if 8080 is taken) in a `.env` next to it, then:
 
 ```bash
-docker compose up -d --build
-docker compose run --rm app seed   # once, only to load the example jersey Campaign
+mise run up        # docker compose up -d --build
+mise run up:seed   # once, only to load the example jersey Campaign
+mise run logs      # follow the app log
+mise run tunnel    # Cloudflare quick tunnel to HOST_PORT; prints a new https://*.trycloudflare.com URL
+mise run down
 ```
+
+For a LINE test, set the MINI App channel's Endpoint URL to `<tunnel URL>${BASE_PATH}/` and open `https://miniapp.line.me/<LIFF_ID>` in LINE. A quick tunnel gets a new URL on every start, so update the Endpoint URL each time.
 
 The gateway must forward `${BASE_PATH}` without stripping it. Backups are the host's job: snapshot the whole `/data` volume, or use `sqlite3 app.db .backup`, never a plain file copy while the app runs.
 
