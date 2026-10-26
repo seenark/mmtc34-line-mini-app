@@ -1,6 +1,6 @@
 # MMTC Events
 
-LINE MINI App where one school class runs money-collecting Campaigns (jersey orders, donations, parties). Anyone who signs in with LINE and fills in a profile is a Member at once; there is no approval step. Members order like in an online shop, pay by transfer using the Campaign's QR image and bank account, and upload a transfer Slip per Order. Admins review Slips, record cash and Adjustments, and export factory, shipping and pickup lists.
+LINE MINI App where one school class runs money-collecting Campaigns (jersey orders, donations, parties). Anyone who signs in with LINE and fills in a profile is a Member at once; there is no approval step. Members order like in an online shop, pay by transfer using the Campaign's QR image and bank account, and upload a transfer Slip per Order. Admins review Slips, upload a Slip on a Member's behalf (on the admin Order page, where they can review it at once), record cash and Adjustments, and export factory, shipping and pickup lists.
 
 Terms are defined in `GLOSSARY.md`. The design is in `docs/architecture.md`, and the decisions behind it in `docs/adr/`.
 

@@ -10,6 +10,8 @@ import { LinkOrderDialog } from "@/components/order/link-order-dialog";
 import { OrderHeader } from "@/components/order/order-header";
 import { OrderSummary } from "@/components/order/order-summary";
 import { PaymentHistory } from "@/components/order/payment-history";
+import { ReviewCard } from "@/components/payment/review-card";
+import { SlipUpload } from "@/components/payment/slip-upload";
 import { NavSlot } from "@/lib/nav";
 
 export const Route = createFileRoute("/admin/orders/$orderId/")({
@@ -35,6 +37,8 @@ function AdminOrderPage() {
       <OrderHeader order={order} admin />
       <OrderSummary order={order} />
       <PaymentHistory order={order} />
+      <SlipUpload order={order} />
+      {actions.reviewSlip && <ReviewCard order={order} />}
       <NavSlot slot="adminOrder" params={{ orderId }} actions={actions} />
       {!owner.linked && !owner.deleted && (
         <LinkOrderDialog orderId={order.id} />

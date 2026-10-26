@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { errorText } from "@/api/me";
 import { useUploadSlip } from "@/api/payments";
-import type { Order } from "@/api/types.gen";
+import { type Order, OrderPendingReview } from "@/api/types.gen";
 
 /**
  * The next step of paying, in place on the Order page: one tap opens the picker, then preview and
@@ -25,6 +25,8 @@ export function SlipUpload({ order }: { order: Order }) {
   }, [preview]);
 
   if (upload.isSuccess) {
+    // On the admin page the Slip is reviewed in place, so the note goes once it is reviewed.
+    if (order.status !== OrderPendingReview) return null;
     return (
       <p role="status" className="bg-muted rounded-md p-3 text-sm">
         ส่งสลิปแล้ว รอแอดมินตรวจ

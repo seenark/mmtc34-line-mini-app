@@ -50,16 +50,31 @@ func TestUploadRejectsBadFileAndLeavesOrderAwaiting(t *testing.T) {
 	Equal(t, len(got.Payments), 0)
 }
 
-func TestOnlyTheOwnerUploadsASlip(t *testing.T) {
+func TestOwnerOrAdminUploadsASlip(t *testing.T) {
 	h := New(t)
 	alice, bob, admin := h.Member("alice"), h.Member("bob"), h.Admin()
 	j := h.OpenJersey()
 	o := alice.Checkout(j.Campaign.ID, Pickup(Shirt(j, "L", 1)))
 
 	bob.POST(slipPath(o.ID), JPEG()).Status(404)
-	admin.POST(slipPath(o.ID), JPEG()).Status(403)
 	h.Anonymous().POST(slipPath(o.ID), JPEG()).Status(401)
 	Equal(t, alice.Order(o.ID).Status, api.OrderAwaitingPayment)
+
+	Equal(t, As[api.Order](admin.POST(slipPath(o.ID), JPEG()).Status(200)).Status, api.OrderPendingReview)
+	admin.POST(slipPath(o.ID), JPEG()).Status(409)
+}
+
+func TestAdminUploadsASlipAfterClose(t *testing.T) {
+	h := New(t)
+	admin := h.Admin()
+	j := h.OpenJersey()
+	ghost := As[api.Member](admin.POST("/api/admin/members", api.ProfileInput{Nickname: "ติ๋ว"}).Status(201))
+	o := As[api.Order](admin.POST(campaignOrdersPath(j.Campaign.ID), api.AdminOrderInput{
+		MemberID: ghost.ID, Order: Pickup(Shirt(j, "L", 1)),
+	}).Status(201))
+	h.Close(j.Campaign.ID)
+
+	Equal(t, As[api.Order](admin.POST(slipPath(o.ID), JPEG()).Status(200)).Status, api.OrderPendingReview)
 }
 
 func TestRejectNeedsAReasonAndReturnsOrderToAwaiting(t *testing.T) {

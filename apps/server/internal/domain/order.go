@@ -110,6 +110,8 @@ var (
 var rules = []rule{
 	{EvView, owner | admin, anyStatus, "", false},
 	{EvUploadSlip, owner, []api.OrderStatus{awaiting}, reviewing, true},
+	// Admins upload the Slip a Member sent them another way, e.g. for an on-behalf Order.
+	{EvUploadSlip, admin, []api.OrderStatus{awaiting}, reviewing, false},
 	{EvConfirmSlip, admin, []api.OrderStatus{reviewing}, paid, false},
 	{EvRejectSlip, admin, []api.OrderStatus{reviewing}, awaiting, false},
 	// Cash settles an unpaid Order even after close, or tops up a paid one. Not from

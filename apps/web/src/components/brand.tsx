@@ -9,9 +9,12 @@ export function Brand({ className }: { className?: string }) {
         className,
       )}
     >
-      <span
-        aria-hidden
-        className="bg-secondary size-2.5 shrink-0 rounded-[3px]"
+      <img
+        src={`${import.meta.env.BASE_URL}icon-192.png`}
+        alt=""
+        width={28}
+        height={28}
+        className="size-7 shrink-0"
       />
       <span className="truncate">MMTC Events</span>
     </span>
