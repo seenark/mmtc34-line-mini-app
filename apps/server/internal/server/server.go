@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -114,10 +115,19 @@ func New(d Deps) (http.Handler, error) {
 	engine.RedirectTrailingSlash = false
 	engine.RedirectFixedPath = false
 	apiGroup := engine.Group(d.Config.BasePath).Group("/api")
-	apiGroup.Use(rejectCrossSiteWrites)
+	apiGroup.Use(logRequest, rejectCrossSiteWrites)
 	s.mount(apiGroup)
 	engine.NoRoute(spaHandler(dist, d.Config.BasePath))
 	return engine, nil
+}
+
+// logRequest writes one line per API call: method, path, status, duration. No query string,
+// headers or bodies, so tokens, cookies and personal data never reach the log.
+func logRequest(c *gin.Context) {
+	start := time.Now()
+	c.Next()
+	slog.Info("api", "method", c.Request.Method, "path", c.Request.URL.Path,
+		"status", c.Writer.Status(), "ms", time.Since(start).Milliseconds())
 }
 
 // rejectCrossSiteWrites 403s a state-changing request that a browser marks as not

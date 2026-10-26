@@ -7,6 +7,7 @@ import {
 import { redirect, useNavigate } from "@tanstack/react-router";
 
 import { clearAllCarts } from "@/lib/cart";
+import { LineSignInError } from "@/lib/liff";
 
 import { ApiError, api } from "./client";
 import {
@@ -18,9 +19,10 @@ import {
   RoleAdmin,
 } from "./types.gen";
 
-/** Server errors are already Thai; anything else gets a generic Thai message. */
+/** Server errors and LINE sign-in errors are already Thai; anything else gets a generic Thai message. */
 export function errorText(e: unknown): string {
-  return e instanceof ApiError ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
+  if (e instanceof ApiError || e instanceof LineSignInError) return e.message;
+  return "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
 }
 
 /** null = no valid session. */
