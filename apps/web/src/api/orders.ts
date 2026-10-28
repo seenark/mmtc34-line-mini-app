@@ -7,7 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { api } from "./client";
 import { myAddressesQuery } from "./profile";
-import type { Order, OrderInput } from "./types.gen";
+import type { Order, OrderDetailsInput, OrderInput } from "./types.gen";
 
 export const ordersQuery = queryOptions({
   queryKey: ["orders"],
@@ -49,6 +49,23 @@ export function useCancelOrder(orderId: string) {
     onSuccess: (order) => {
       qc.setQueryData(orderQuery(orderId).queryKey, order);
       return qc.invalidateQueries({ queryKey: ordersQuery.queryKey });
+    },
+  });
+}
+
+export function useEditOrderDetails(orderId: string) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (input: OrderDetailsInput) =>
+      api<Order>("PUT", `/orders/${orderId}/details`, input),
+    onSuccess: async (order) => {
+      qc.setQueryData(orderQuery(orderId).queryKey, order);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ordersQuery.queryKey }),
+        qc.invalidateQueries({ queryKey: myAddressesQuery.queryKey }),
+      ]);
+      await navigate({ to: "/orders/$orderId", params: { orderId } });
     },
   });
 }

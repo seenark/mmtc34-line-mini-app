@@ -77,6 +77,8 @@ export function ItemFields(props: {
   option: Option;
   value: ItemDetails;
   onChange: (value: ItemDetails) => void;
+  /** Hide quantity and amount: a placed Order's money fields are fixed. */
+  detailsOnly?: boolean;
 }) {
   const { id, option: o, value } = props;
   const set = (patch: Partial<ItemDetails>) =>
@@ -127,7 +129,7 @@ export function ItemFields(props: {
           />
         </Field>
       )}
-      {o.price === null ? (
+      {props.detailsOnly ? null : o.price === null ? (
         <Field label="จำนวนเงิน (บาท)" required>
           <Input
             id={`${id}-amount`}

@@ -134,3 +134,33 @@ func ValidateEdit(options []api.Option, in api.OrderInput, kept map[int64]Item) 
 	}
 	return v, nil
 }
+
+// ValidateDetails is the Member's edit of a placed Order: the stored Items keep quantity, Option
+// and captured price, and the Delivery Method is kept; only size, print name, number and the
+// shipping triple come from the input, and they pass the same rules as checkout.
+func ValidateDetails(options []api.Option, o Order, in api.OrderDetailsInput) (ValidOrder, error) {
+	if len(in.Items) != len(o.Items) {
+		return ValidOrder{}, &Error{Kind: Invalid, Msg: "ต้องระบุรายละเอียดของทุกรายการ"}
+	}
+	given := make(map[int64]api.ItemDetailsInput, len(in.Items))
+	for _, it := range in.Items {
+		given[it.ID] = it
+	}
+	full := api.OrderInput{
+		Delivery: o.Delivery, ShipName: in.ShipName, ShipAddress: in.ShipAddress, ShipPhone: in.ShipPhone,
+		Items: make([]api.ItemInput, len(o.Items)),
+	}
+	kept := make(map[int64]Item, len(o.Items))
+	for i, it := range o.Items {
+		d, ok := given[it.ID]
+		if !ok {
+			return ValidOrder{}, &Error{Kind: Invalid, Msg: "ต้องระบุรายละเอียดของทุกรายการ"}
+		}
+		id := it.ID
+		full.Items[i] = api.ItemInput{
+			ID: &id, OptionID: it.OptionID, Size: d.Size, PrintName: d.PrintName, Number: d.Number, Quantity: it.Quantity,
+		}
+		kept[it.ID] = it
+	}
+	return ValidateEdit(options, full, kept)
+}

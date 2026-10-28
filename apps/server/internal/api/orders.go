@@ -44,6 +44,22 @@ type OrderInput struct {
 	Items       []ItemInput `json:"items"`
 }
 
+// ItemDetailsInput is the owner-editable part of an existing Item; quantity, Option and price are not accepted.
+type ItemDetailsInput struct {
+	ID        int64  `json:"id"`
+	Size      string `json:"size"`
+	PrintName string `json:"printName"`
+	Number    string `json:"number"`
+}
+
+// OrderDetailsInput is the body of PUT /orders/:orderId/details. Items must list every existing Item once.
+type OrderDetailsInput struct {
+	ShipName    string             `json:"shipName"`
+	ShipAddress string             `json:"shipAddress"`
+	ShipPhone   string             `json:"shipPhone"`
+	Items       []ItemDetailsInput `json:"items"`
+}
+
 // AdminOrderInput is the body of POST /admin/campaigns/:campaignId/orders (on behalf).
 type AdminOrderInput struct {
 	MemberID int64      `json:"memberId"`
@@ -92,13 +108,14 @@ type Adjustment struct {
 // OrderActions is domain.Order.Actions(viewer): which lifecycle events the viewer may fire
 // right now. The web app shows buttons from this and never encodes the state machine itself.
 type OrderActions struct {
-	Cancel     bool `json:"cancel"`
-	UploadSlip bool `json:"uploadSlip"`
-	ReviewSlip bool `json:"reviewSlip"` // confirm or reject
-	EditSlips  bool `json:"editSlips"`  // Admin adds or removes images of a Slip Payment
-	RecordCash bool `json:"recordCash"`
-	Edit       bool `json:"edit"`
-	AddAdjust  bool `json:"addAdjust"`
+	Cancel      bool `json:"cancel"`
+	UploadSlip  bool `json:"uploadSlip"`
+	ReviewSlip  bool `json:"reviewSlip"` // confirm or reject
+	EditSlips   bool `json:"editSlips"`  // Admin adds or removes images of a Slip Payment
+	RecordCash  bool `json:"recordCash"`
+	Edit        bool `json:"edit"`
+	EditDetails bool `json:"editDetails"` // the owner fixes size, print name, number and shipping; never money
+	AddAdjust   bool `json:"addAdjust"`
 }
 
 type Order struct {

@@ -16,6 +16,7 @@ func (s *Server) mountOrders(r routes) {
 	r.member.GET("/orders/:orderId", s.getOrder)
 	// One cancel endpoint for Member and Admin: the state machine decides by actor.
 	r.member.POST("/orders/:orderId/cancel", s.cancelOrder)
+	r.member.PUT("/orders/:orderId/details", s.editOrderDetails)
 }
 
 func (s *Server) createOrder(c *gin.Context) {
@@ -56,5 +57,26 @@ func (s *Server) cancelOrder(c *gin.Context) {
 		return q.RejectPendingPayment(c.Request.Context(), db.RejectPendingPaymentParams{
 			Reason: "ยกเลิกคำสั่งซื้อ", ReviewedBy: &me.MemberID, Now: &now, OrderID: o.ID,
 		})
+	})
+}
+
+// editOrderDetails lets the owner correct size, print name, number and shipping while the
+// Campaign is open, whatever the payment state. Money fields cannot change (ValidateDetails).
+func (s *Server) editOrderDetails(c *gin.Context) {
+	in, ok := bind[api.OrderDetailsInput](c)
+	if !ok {
+		return
+	}
+	s.apply(c, domain.EvEditDetails, func(q *db.Queries, o domain.Order) error {
+		ctx := c.Request.Context()
+		options, err := s.campaignOptions(ctx, q, o.CampaignID)
+		if err != nil {
+			return err
+		}
+		v, err := domain.ValidateDetails(options, o, in)
+		if err != nil {
+			return err
+		}
+		return s.replaceContents(ctx, q, o.ID, v)
 	})
 }

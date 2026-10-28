@@ -53,7 +53,7 @@ One checkout in a Campaign, by a Member or by an Admin on a Member's behalf: the
 _Avoid_: Participation, entry, registration, cart
 
 **Item**:
-A line in an Order: an Option, its details, and a quantity. All units in one Item are identical.
+A line in an Order: an Option, its details, and a quantity. All units in one Item are identical. Its details may be corrected by the Member while the Campaign is open; its Option and quantity are fixed once the Order is placed.
 _Avoid_: Order line, product
 
 **Delivery Method**:

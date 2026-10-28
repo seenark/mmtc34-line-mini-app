@@ -1,6 +1,6 @@
-import { Button } from "@mmtc34/ui/components/button";
+import { Button, buttonVariants } from "@mmtc34/ui/components/button";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { errorText } from "@/api/me";
 import { orderQuery, useCancelOrder } from "@/api/orders";
@@ -11,7 +11,7 @@ import { PaymentHistory } from "@/components/order/payment-history";
 import { PaymentInfo } from "@/components/order/payment-info";
 import { SlipUpload } from "@/components/payment/slip-upload";
 
-export const Route = createFileRoute("/_app/orders/$orderId")({
+export const Route = createFileRoute("/_app/orders/$orderId/")({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(orderQuery(params.orderId)),
   component: OrderPage,
@@ -32,6 +32,15 @@ function OrderPage() {
       {order.status === OrderAwaitingPayment && <PaymentInfo order={order} />}
       <SlipUpload order={order} />
       <PaymentHistory order={order} />
+      {actions.editDetails && (
+        <Link
+          to="/orders/$orderId/edit"
+          params={{ orderId }}
+          className={buttonVariants({ variant: "outline", size: "lg" })}
+        >
+          แก้ไขไซซ์ ชื่อ และที่อยู่
+        </Link>
+      )}
       {canCancel && (
         <Button
           variant="destructive"
@@ -51,7 +60,7 @@ function OrderPage() {
       )}
       {!canCancel && order.status !== OrderCancelled && (
         <p role="status" className="bg-muted rounded-md p-3 text-sm">
-          หากต้องการแก้ไขหรือยกเลิกคำสั่งซื้อนี้ กรุณาติดต่อแอดมิน
+          หากต้องการแก้จำนวนสินค้าหรือยกเลิกคำสั่งซื้อนี้ กรุณาติดต่อแอดมิน
         </p>
       )}
     </div>

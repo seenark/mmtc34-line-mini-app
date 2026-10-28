@@ -96,7 +96,7 @@ func TestCheckoutTotalsAndCapturedPrice(t *testing.T) {
 	Equal(t, o.Items[0].OptionName, "เสื้อรุ่น")
 	Equal(t, o.MemberNickname, "alice")
 	Equal(t, o.PlacedByAdmin, false)
-	Equal(t, o.Actions, api.OrderActions{Cancel: true, UploadSlip: true})
+	Equal(t, o.Actions, api.OrderActions{Cancel: true, UploadSlip: true, EditDetails: true})
 
 	admin.PUT(fmt.Sprintf("/api/admin/options/%d", j.Option.ID), api.OptionInput{
 		Name: j.Option.Name, Price: new(int64(300)), Sizes: j.Option.Sizes, NeedsPrintName: true, NeedsNumber: true,
@@ -253,4 +253,41 @@ func TestMyOrdersListsOnlyMineNewestFirst(t *testing.T) {
 	theirs := As[[]api.Order](bob.GET("/api/orders").Status(200))
 	Equal(t, len(theirs), 1)
 	Equal(t, theirs[0].ID, b1.ID)
+}
+
+func TestOwnerEditsDetailsOfPaidOrderButNeverMoney(t *testing.T) {
+	h := New(t)
+	alice, bob, admin := h.Member("alice"), h.Member("bob"), h.Admin()
+	j := h.OpenJersey()
+	o := alice.Checkout(j.Campaign.ID, Ship(Shirt(j, "M", 2)))
+	alice.UploadSlip(o.ID)
+	admin.POST(confirmPath(o.ID), api.AmountInput{Amount: o.Total}).Status(200)
+	paid := alice.Order(o.ID)
+	Equal(t, paid.Status, api.OrderPaid)
+	Equal(t, paid.Actions.EditDetails, true)
+
+	path := fmt.Sprintf("/api/orders/%d/details", o.ID)
+	body := func(qty int64) map[string]any {
+		return map[string]any{
+			"shipName": "ใหม่", "shipAddress": "2 ถนนใหม่", "shipPhone": "0899999999",
+			// extra fields (quantity, optionId) are ignored: the server never reads them
+			"items": []map[string]any{{"id": paid.Items[0].ID, "size": "XL", "printName": "NEW", "number": "9", "quantity": qty, "optionId": 999}},
+		}
+	}
+	got := As[api.Order](alice.PUT(path, body(1)).Status(200))
+	Equal(t, got.Items[0].Size, "XL")
+	Equal(t, got.Items[0].PrintName, "NEW")
+	Equal(t, got.ShipName, "ใหม่")
+	Equal(t, got.Items[0].Quantity, int64(2))
+	Equal(t, got.Items[0].OptionID, j.Option.ID)
+	Equal(t, got.Total, paid.Total)
+	Equal(t, got.Status, api.OrderPaid)
+
+	bad := body(1)
+	bad["shipPhone"] = ""
+	alice.PUT(path, bad).Status(400)
+	bob.PUT(path, body(1)).Status(404)
+
+	h.Close(j.Campaign.ID)
+	alice.PUT(path, body(1)).Status(409)
 }

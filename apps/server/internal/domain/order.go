@@ -77,6 +77,7 @@ const (
 	EvRecordCash  Event = "record_cash"
 	EvCancel      Event = "cancel"
 	EvEdit        Event = "edit"
+	EvEditDetails Event = "edit_details"
 	EvAdjust      Event = "adjust"
 	EvEditSlips   Event = "edit_slips"
 )
@@ -122,6 +123,9 @@ var rules = []rule{
 	// Admin cancel is idempotent: cancelling a cancelled Order succeeds and changes nothing.
 	{EvCancel, admin, anyStatus, cancelled, false},
 	{EvEdit, admin, anyStatus, "", false},
+	// Owner fixes size, print name, number and shipping on a paid Order too; money fields stay
+	// locked because ValidateDetails takes quantity, Option and price from the stored Items.
+	{EvEditDetails, owner, []api.OrderStatus{awaiting, reviewing, paid}, "", true},
 	{EvAdjust, admin, anyStatus, "", false},
 	{EvEditSlips, admin, anyStatus, "", false},
 }
@@ -174,12 +178,13 @@ func (o Order) Decide(a Actor, ev Event) (api.OrderStatus, error) {
 func (o Order) Actions(a Actor) api.OrderActions {
 	can := func(ev Event) bool { _, err := o.Decide(a, ev); return err == nil }
 	return api.OrderActions{
-		Cancel:     can(EvCancel),
-		UploadSlip: can(EvUploadSlip),
-		ReviewSlip: can(EvConfirmSlip) || can(EvRejectSlip),
-		EditSlips:  can(EvEditSlips),
-		RecordCash: can(EvRecordCash),
-		Edit:       can(EvEdit),
-		AddAdjust:  can(EvAdjust),
+		Cancel:      can(EvCancel),
+		UploadSlip:  can(EvUploadSlip),
+		ReviewSlip:  can(EvConfirmSlip) || can(EvRejectSlip),
+		EditSlips:   can(EvEditSlips),
+		RecordCash:  can(EvRecordCash),
+		Edit:        can(EvEdit),
+		EditDetails: can(EvEditDetails),
+		AddAdjust:   can(EvAdjust),
 	}
 }

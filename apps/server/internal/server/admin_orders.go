@@ -65,28 +65,33 @@ func (s *Server) editOrder(c *gin.Context) {
 		if err != nil {
 			return err
 		}
-		name, address, phone := v.Ship()
-		err = q.UpdateOrderContents(ctx, db.UpdateOrderContentsParams{
-			OrderID: o.ID, Delivery: string(v.Delivery()), ShipName: name, ShipAddress: address,
-			ShipPhone: phone, Now: rfc3339(s.now()),
+		return s.replaceContents(ctx, q, o.ID, v)
+	})
+}
+
+// replaceContents rewrites an Order's delivery, shipping and Items from a validated body.
+func (s *Server) replaceContents(ctx context.Context, q *db.Queries, orderID int64, v domain.ValidOrder) error {
+	name, address, phone := v.Ship()
+	err := q.UpdateOrderContents(ctx, db.UpdateOrderContentsParams{
+		OrderID: orderID, Delivery: string(v.Delivery()), ShipName: name, ShipAddress: address,
+		ShipPhone: phone, Now: rfc3339(s.now()),
+	})
+	if err != nil {
+		return err
+	}
+	if err := q.DeleteItemsForOrder(ctx, orderID); err != nil {
+		return err
+	}
+	for _, it := range v.Items() {
+		err := q.InsertItem(ctx, db.InsertItemParams{
+			OrderID: orderID, OptionID: it.OptionID, Size: it.Size, PrintName: it.PrintName,
+			Number: it.Number, Quantity: it.Quantity, UnitPrice: it.UnitPrice,
 		})
 		if err != nil {
 			return err
 		}
-		if err := q.DeleteItemsForOrder(ctx, o.ID); err != nil {
-			return err
-		}
-		for _, it := range v.Items() {
-			err := q.InsertItem(ctx, db.InsertItemParams{
-				OrderID: o.ID, OptionID: it.OptionID, Size: it.Size, PrintName: it.PrintName,
-				Number: it.Number, Quantity: it.Quantity, UnitPrice: it.UnitPrice,
-			})
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (s *Server) campaignOptions(ctx context.Context, q *db.Queries, campaignID int64) ([]api.Option, error) {
