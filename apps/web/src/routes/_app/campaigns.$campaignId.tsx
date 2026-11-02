@@ -7,6 +7,7 @@ import {
 import { CalendarClock } from "lucide-react";
 
 import { campaignQuery } from "@/api/campaigns";
+import { PhotoStrip } from "@/components/campaign/photo-strip";
 import { closeAtText, StatusBadge } from "@/components/campaign/status-badge";
 import { imageUrl } from "@/lib/image";
 import { NavSlot } from "@/lib/nav";
@@ -32,14 +33,7 @@ function CampaignLayout() {
     <div className="flex flex-col gap-4">
       {onDetail ? (
         <>
-          {cover && (
-            // The jersey cover is a square product photo; other shapes letterbox inside the same box.
-            <img
-              src={imageUrl(cover)}
-              alt=""
-              className="bg-muted aspect-square max-h-80 w-full rounded-xl object-contain"
-            />
-          )}
+          <PhotoStrip photos={campaign.photos} />
           <header className="flex flex-col gap-2">
             <div className="flex items-start justify-between gap-3">
               <h1 className="text-primary min-w-0 text-2xl font-extrabold [overflow-wrap:anywhere]">
