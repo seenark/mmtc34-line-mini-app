@@ -84,9 +84,9 @@ func TestSavingWithUnknownImageNameIs400(t *testing.T) {
 	unknown := "0123456789abcdef0123456789abcdef.jpg"
 
 	in := draft("ชื่อ")
-	in.CoverImage = unknown
+	in.Photos = []string{unknown}
 	Equal(t, admin.POST("/api/admin/campaigns", in).Status(400).Error(), "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่")
-	in.CoverImage, in.QRImage = "", "../etc/passwd"
+	in.Photos, in.QRImage = nil, "../etc/passwd"
 	admin.PUT(fmt.Sprintf("/api/admin/campaigns/%d", j.Campaign.ID), in).Status(400)
 	admin.POST(fmt.Sprintf("/api/admin/campaigns/%d/options", j.Campaign.ID), api.OptionInput{Name: "x", Image: unknown}).Status(400)
 	admin.PUT(fmt.Sprintf("/api/admin/options/%d", j.Option.ID), api.OptionInput{Name: "x", Image: unknown}).Status(400)
@@ -97,12 +97,12 @@ func TestSavingWithUploadedImageKeepsTheName(t *testing.T) {
 	admin := h.Admin()
 	name := uploadJPEG(t, admin)
 	in := draft("ชื่อ")
-	in.CoverImage, in.QRImage = name, name
+	in.Photos, in.QRImage = []string{name}, name
 
 	camp := As[api.Campaign](admin.POST("/api/admin/campaigns", in).Status(201))
 	opt := As[api.Option](admin.POST(fmt.Sprintf("/api/admin/campaigns/%d/options", camp.ID), api.OptionInput{Name: "x", Image: name}).Status(201))
 
-	Equal(t, camp.CoverImage, name)
+	Equal(t, fmt.Sprint(camp.Photos), fmt.Sprint([]string{name}))
 	Equal(t, camp.QRImage, name)
 	Equal(t, opt.Image, name)
 }

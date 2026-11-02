@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -37,13 +38,17 @@ func domainCampaign(row db.Campaign) domain.Campaign {
 }
 
 // toAPICampaign is the only db.Campaign -> api.Campaign mapping; it writes the effective status.
-func (s *Server) toAPICampaign(row db.Campaign) api.Campaign {
+// photos are the row's Campaign Photo names in order; nil serializes as [].
+func (s *Server) toAPICampaign(row db.Campaign, photos []string) api.Campaign {
+	if photos == nil {
+		photos = []string{}
+	}
 	return api.Campaign{
 		ID:              row.ID,
 		Type:            api.CampaignType(row.Type),
 		Title:           row.Title,
 		Description:     row.Description,
-		CoverImage:      row.CoverImage,
+		Photos:          photos,
 		BankCode:        row.BankCode,
 		BankName:        domain.BankName(row.BankCode),
 		BankAccountNo:   row.BankAccountNo,
@@ -52,6 +57,20 @@ func (s *Server) toAPICampaign(row db.Campaign) api.Campaign {
 		Status:          domainCampaign(row).Status(s.now()),
 		CloseAt:         row.CloseAt,
 	}
+}
+
+// replacePhotos makes names the Campaign's whole photo set; array index is the sort order.
+func replacePhotos(ctx context.Context, q *db.Queries, campaignID int64, names []string) error {
+	if err := q.DeleteCampaignPhotos(ctx, campaignID); err != nil {
+		return err
+	}
+	for i, name := range names {
+		err := q.CreateCampaignPhoto(ctx, db.CreateCampaignPhotoParams{CampaignID: campaignID, Name: name, SortOrder: int64(i)})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func toAPIOption(o db.Option) api.Option {
@@ -100,9 +119,22 @@ func (s *Server) writeCampaigns(c *gin.Context, rows []db.Campaign, err error) {
 		fail(c, err)
 		return
 	}
+	ids := make([]int64, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+	photoRows, err := s.q.ListPhotosForCampaigns(c.Request.Context(), ids)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	photos := make(map[int64][]string, len(rows))
+	for _, p := range photoRows {
+		photos[p.CampaignID] = append(photos[p.CampaignID], p.Name)
+	}
 	out := make([]api.Campaign, len(rows))
 	for i, row := range rows {
-		out[i] = s.toAPICampaign(row)
+		out[i] = s.toAPICampaign(row, photos[row.ID])
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -122,7 +154,12 @@ func (s *Server) campaignDetail(c *gin.Context) {
 		fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, api.CampaignDetail{Campaign: s.toAPICampaign(row), Options: opts})
+	photos, err := s.q.ListCampaignPhotos(c.Request.Context(), id)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, api.CampaignDetail{Campaign: s.toAPICampaign(row, photos), Options: opts})
 }
 
 // bindCampaign decodes, validates and checks image names. ok=false means the response is written.
@@ -133,7 +170,10 @@ func (s *Server) bindCampaign(c *gin.Context) (in api.CampaignInput, ok bool) {
 	}
 	in, err := domain.ValidateCampaign(in)
 	if err == nil {
-		err = s.requireImages(in.CoverImage, in.QRImage)
+		err = s.requirePhotos(in.Photos)
+	}
+	if err == nil {
+		err = s.requireImages(in.QRImage)
 	}
 	if err != nil {
 		fail(c, err)
@@ -147,24 +187,30 @@ func (s *Server) createCampaign(c *gin.Context) {
 	if !ok {
 		return
 	}
-	row, err := s.q.CreateCampaign(c.Request.Context(), db.CreateCampaignParams{
-		Type:            string(in.Type),
-		Title:           in.Title,
-		Description:     in.Description,
-		CoverImage:      in.CoverImage,
-		BankCode:        in.BankCode,
-		BankAccountNo:   in.BankAccountNo,
-		BankAccountName: in.BankAccountName,
-		QrImage:         in.QRImage,
-		Status:          string(in.Status),
-		CloseAt:         in.CloseAt,
-		CreatedAt:       rfc3339(s.now()),
+	var row db.Campaign
+	err := s.tx(c.Request.Context(), func(q *db.Queries) (err error) {
+		row, err = q.CreateCampaign(c.Request.Context(), db.CreateCampaignParams{
+			Type:            string(in.Type),
+			Title:           in.Title,
+			Description:     in.Description,
+			BankCode:        in.BankCode,
+			BankAccountNo:   in.BankAccountNo,
+			BankAccountName: in.BankAccountName,
+			QrImage:         in.QRImage,
+			Status:          string(in.Status),
+			CloseAt:         in.CloseAt,
+			CreatedAt:       rfc3339(s.now()),
+		})
+		if err != nil {
+			return err
+		}
+		return replacePhotos(c.Request.Context(), q, row.ID, in.Photos)
 	})
 	if err != nil {
 		fail(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, s.toAPICampaign(row))
+	c.JSON(http.StatusCreated, s.toAPICampaign(row, in.Photos))
 }
 
 func (s *Server) updateCampaign(c *gin.Context) {
@@ -176,24 +222,30 @@ func (s *Server) updateCampaign(c *gin.Context) {
 	if !ok {
 		return
 	}
-	row, err := s.q.UpdateCampaign(c.Request.Context(), db.UpdateCampaignParams{
-		ID:              id,
-		Type:            string(in.Type),
-		Title:           in.Title,
-		Description:     in.Description,
-		CoverImage:      in.CoverImage,
-		BankCode:        in.BankCode,
-		BankAccountNo:   in.BankAccountNo,
-		BankAccountName: in.BankAccountName,
-		QrImage:         in.QRImage,
-		Status:          string(in.Status),
-		CloseAt:         in.CloseAt,
+	var row db.Campaign
+	err := s.tx(c.Request.Context(), func(q *db.Queries) (err error) {
+		row, err = q.UpdateCampaign(c.Request.Context(), db.UpdateCampaignParams{
+			ID:              id,
+			Type:            string(in.Type),
+			Title:           in.Title,
+			Description:     in.Description,
+			BankCode:        in.BankCode,
+			BankAccountNo:   in.BankAccountNo,
+			BankAccountName: in.BankAccountName,
+			QrImage:         in.QRImage,
+			Status:          string(in.Status),
+			CloseAt:         in.CloseAt,
+		})
+		if err != nil {
+			return err
+		}
+		return replacePhotos(c.Request.Context(), q, id, in.Photos)
 	})
 	if err != nil {
 		fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, s.toAPICampaign(row))
+	c.JSON(http.StatusOK, s.toAPICampaign(row, in.Photos))
 }
 
 // bindOption decodes, validates and checks the image name; sizes is the JSON column value.

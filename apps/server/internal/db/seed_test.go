@@ -55,8 +55,9 @@ func TestSeedCreatesFootballCampaign(t *testing.T) {
 	if c.QrImage != "" {
 		t.Fatalf("qr_image = %q, want empty", c.QrImage)
 	}
-	if c.CoverImage != jerseyImage {
-		t.Fatalf("cover_image = %q, want %q", c.CoverImage, jerseyImage)
+	photos, err := q.ListCampaignPhotos(context.Background(), c.ID)
+	if err != nil || !slices.Equal(photos, []string{jerseyImage}) {
+		t.Fatalf("campaign photos = %v, want [%s], err %v", photos, jerseyImage, err)
 	}
 
 	opts, err := q.ListOptions(context.Background(), c.ID)

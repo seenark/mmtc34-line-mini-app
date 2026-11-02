@@ -27,14 +27,15 @@ function CampaignLayout() {
       matches.at(-1)?.routeId === "/_app/campaigns/$campaignId/",
   });
   const closeAt = closeAtText(campaign.closeAt);
+  const cover = campaign.photos[0];
   return (
     <div className="flex flex-col gap-4">
       {onDetail ? (
         <>
-          {campaign.coverImage && (
+          {cover && (
             // The jersey cover is a square product photo; other shapes letterbox inside the same box.
             <img
-              src={imageUrl(campaign.coverImage)}
+              src={imageUrl(cover)}
               alt=""
               className="bg-muted aspect-square max-h-80 w-full rounded-xl object-contain"
             />
@@ -58,9 +59,9 @@ function CampaignLayout() {
         </>
       ) : (
         <header className="flex items-center gap-3">
-          {campaign.coverImage && (
+          {cover && (
             <img
-              src={imageUrl(campaign.coverImage)}
+              src={imageUrl(cover)}
               alt=""
               className="bg-muted size-12 shrink-0 rounded-md object-contain"
             />

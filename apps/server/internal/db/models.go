@@ -19,7 +19,6 @@ type Campaign struct {
 	Type            string
 	Title           string
 	Description     string
-	CoverImage      string
 	BankAccountNo   string
 	BankAccountName string
 	QrImage         string
@@ -27,6 +26,13 @@ type Campaign struct {
 	CloseAt         *string
 	CreatedAt       string
 	BankCode        string
+}
+
+type CampaignPhoto struct {
+	ID         int64
+	CampaignID int64
+	Name       string
+	SortOrder  int64
 }
 
 type ClassGroup struct {

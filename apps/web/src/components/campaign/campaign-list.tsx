@@ -31,9 +31,9 @@ export function CampaignList(props: {
         // The jersey cover is a square product photo, so the thumbnail is square and flush left.
         const card = (
           <Card className={CARD}>
-            {c.coverImage ? (
+            {c.photos[0] ? (
               <img
-                src={imageUrl(c.coverImage)}
+                src={imageUrl(c.photos[0])}
                 alt=""
                 loading="lazy"
                 className={`${THUMB} object-cover`}

@@ -38,6 +38,14 @@ _Avoid_: Tenant, organisation, cohort
 One collection effort with a purpose, a bank account and QR code to pay into, and a status of draft, open, or closed. Closing takes no new Orders and cancels Orders still awaiting payment.
 _Avoid_: Event (an event is one kind of Campaign), project, post. The app shows a Campaign to users as `อีเวนต์` (event); it is still distinct from the `event` type, which the UI labels `กิจกรรม`.
 
+**Campaign Photo**:
+One of the pictures an Admin attaches to a Campaign, kept in an order the Admin chooses and may change at any time. A Campaign may have none or any number.
+_Avoid_: Gallery, album, banner
+
+**Cover**:
+The first Campaign Photo in a Campaign's order; it represents the Campaign wherever the Campaign appears among others. A Campaign without Campaign Photos has no Cover.
+_Avoid_: Cover image, thumbnail, main photo
+
 **Option**:
 A purchasable thing offered in a Campaign, with a price and the details each unit needs (for example a jersey design needing size, print name, number, with a size chart to choose from). A donation Option lets the Member choose the price.
 _Avoid_: Product, SKU, variant

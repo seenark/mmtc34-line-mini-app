@@ -121,6 +121,7 @@ internal/
     migrations/00001_init.sql     complete schema (sketch has it in full)
     migrations/20261026120000_events_football_2026.sql   open membership, size_chart, bank_code, qr_source, delivery 'none'
     migrations/20261026180000_drop_qr_source.sql         drops campaigns.qr_source (no generated QR)
+    migrations/20261102090000_campaign_photos.sql        campaign_photos (ordered image names per Campaign, sort_order 0 = Cover); moves cover_image into it and drops the column
     queries/<feature>.sql         one per ticket → <feature>.sql.go
     seed/10_football_2026.sql (.3), seed/20_football_2026_sponsors.sql (.10), seed/images/*.jpg (embedded; copied to DATA_DIR/files/images when absent)
   line/       verify.go: Client.Verify(ctx, idToken) → LINE userId
@@ -253,10 +254,15 @@ Access groups (routes.go): `public` (config, auth) · `self` (me, onboard, edit/
 - Server `saveUpload(c, kind)`: `http.MaxBytesReader` 5 MB (413), sniff first 512 bytes with
   `http.DetectContentType` → `image/jpeg|png|webp` only (400), write temp then rename to
   `DATA_DIR/files/<kind>/<32 hex>.<ext>`. No files table.
-- The **directory decides access**: `images/` (covers, Option images, QR, logos) via
+- The **directory decides access**: `images/` (Campaign Photos, Option images, QR, logos) via
   `GET /api/images/:name` for Members; `slips/` via `GET /api/slips/:name` for the
   Payment's Order owner or Admins, else 404. Names must match `^[0-9a-f]{32}\.(jpg|png|webp)$`
   (no traversal). Cache: `private, max-age=31536000, immutable`.
+- Campaign Photos: the client uploads each picture through the single-file image endpoint, then
+  saves the Campaign with the ordered name list. Saving replaces the whole `campaign_photos` set
+  in one transaction (array index = `sort_order`; unknown name or duplicate → 400, nothing saved).
+  Lists load every row's photos with one `IN (sqlc.slice(ids))` query. A photo removed from a
+  Campaign leaves its file in `images/`: there is no delete or sweep.
 - Slip upload saves the file inside the `apply` effect, i.e. after the permission/state check.
   Shortcut: a file whose transaction then fails is orphaned; acceptable at this scale.
 
