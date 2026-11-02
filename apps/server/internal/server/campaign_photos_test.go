@@ -112,6 +112,22 @@ func TestUpdatingPhotosReplacesTheWholeSet(t *testing.T) {
 	Equal(t, list, "[]")
 }
 
+func TestReorderingPhotosChangesTheCover(t *testing.T) {
+	h := New(t)
+	admin, bob := h.Admin(), h.Member("bob")
+	names := uploadJPEGs(t, admin, 3)
+	camp := As[api.Campaign](admin.POST("/api/admin/campaigns", openCampaign("เสื้อ", names...)).Status(201))
+	reordered := []string{names[2], names[0], names[1]}
+
+	updated := As[api.Campaign](admin.PUT(fmt.Sprintf("/api/admin/campaigns/%d", camp.ID), openCampaign("เสื้อ", reordered...)).Status(200))
+
+	want := fmt.Sprint(reordered)
+	Equal(t, fmt.Sprint(updated.Photos), want)
+	detail, list := memberPhotos(t, bob, camp.ID)
+	Equal(t, detail, want)
+	Equal(t, list, want)
+}
+
 func TestRemovedPhotoFileStaysReadable(t *testing.T) {
 	h := New(t)
 	admin, bob := h.Admin(), h.Member("bob")
