@@ -18,6 +18,7 @@ import { configQuery } from "@/lib/liff";
 
 import { Field, selectClass } from "./field";
 import { ImageField } from "./image-field";
+import { PhotosField } from "./photos-field";
 
 const types = [
   { value: CampaignMerch, label: "สินค้า" },
@@ -50,7 +51,8 @@ export function CampaignForm(props: {
 }) {
   const c = props.initial;
   const { data: config } = useQuery(configQuery);
-  const [coverImage, setCoverImage] = useState(c?.coverImage ?? "");
+  const [photos, setPhotos] = useState(c?.photos ?? []);
+  const [uploading, setUploading] = useState(false);
   const [qrImage, setQrImage] = useState(c?.qrImage ?? "");
   const [bankCode, setBankCode] = useState(c?.bankCode ?? "");
 
@@ -73,7 +75,7 @@ export function CampaignForm(props: {
           type: text("type"),
           title: text("title"),
           description: text("description"),
-          coverImage,
+          photos,
           bankCode,
           bankAccountNo: text("bankAccountNo"),
           bankAccountName: text("bankAccountName"),
@@ -107,7 +109,12 @@ export function CampaignForm(props: {
           defaultValue={c?.description}
         />
       </Field>
-      <ImageField label="รูปปก" value={coverImage} onChange={setCoverImage} />
+      <PhotosField
+        label="รูปภาพ"
+        value={photos}
+        onChange={setPhotos}
+        onUploadingChange={setUploading}
+      />
       <fieldset className="flex min-w-0 flex-col gap-4 rounded-xl border p-4">
         <legend className="px-1 text-base font-semibold">ช่องทางรับเงิน</legend>
         <Field label="ธนาคาร">
@@ -173,7 +180,7 @@ export function CampaignForm(props: {
           {props.error}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={props.pending}>
+      <Button type="submit" size="lg" disabled={props.pending || uploading}>
         {props.submitLabel}
       </Button>
     </form>

@@ -21,9 +21,9 @@ type Campaign struct {
 	Type            CampaignType   `json:"type"`
 	Title           string         `json:"title"`
 	Description     string         `json:"description"`
-	CoverImage      string         `json:"coverImage"` // image name, "" = none
-	BankCode        string         `json:"bankCode"`   // "" = none
-	BankName        string         `json:"bankName"`   // derived from bankCode, "" when none
+	Photos          []string       `json:"photos"`   // image names in display order, [0] is the Cover; never null
+	BankCode        string         `json:"bankCode"` // "" = none
+	BankName        string         `json:"bankName"` // derived from bankCode, "" when none
 	BankAccountNo   string         `json:"bankAccountNo"`
 	BankAccountName string         `json:"bankAccountName"`
 	QRImage         string         `json:"qrImage"` // image name, "" = none
@@ -35,7 +35,7 @@ type CampaignInput struct {
 	Type            CampaignType   `json:"type"`
 	Title           string         `json:"title"`
 	Description     string         `json:"description"`
-	CoverImage      string         `json:"coverImage"`
+	Photos          []string       `json:"photos"`   // image names in display order, [0] is the Cover; null = none
 	BankCode        string         `json:"bankCode"` // "" = none; otherwise a code from GET /api/config banks
 	BankAccountNo   string         `json:"bankAccountNo"`
 	BankAccountName string         `json:"bankAccountName"`

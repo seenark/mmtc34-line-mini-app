@@ -10,19 +10,18 @@ import (
 )
 
 const createCampaign = `-- name: CreateCampaign :one
-INSERT INTO campaigns (type, title, description, cover_image, bank_code, bank_account_no, bank_account_name,
+INSERT INTO campaigns (type, title, description, bank_code, bank_account_no, bank_account_name,
                        qr_image, status, close_at, created_at)
-VALUES (?1, ?2, ?3, ?4, ?5,
-        ?6, ?7, ?8,
-        ?9, ?10, ?11)
-RETURNING id, group_id, type, title, description, cover_image, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code
+VALUES (?1, ?2, ?3, ?4,
+        ?5, ?6, ?7,
+        ?8, ?9, ?10)
+RETURNING id, group_id, type, title, description, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code
 `
 
 type CreateCampaignParams struct {
 	Type            string
 	Title           string
 	Description     string
-	CoverImage      string
 	BankCode        string
 	BankAccountNo   string
 	BankAccountName string
@@ -37,7 +36,6 @@ func (q *Queries) CreateCampaign(ctx context.Context, arg CreateCampaignParams) 
 		arg.Type,
 		arg.Title,
 		arg.Description,
-		arg.CoverImage,
 		arg.BankCode,
 		arg.BankAccountNo,
 		arg.BankAccountName,
@@ -53,7 +51,6 @@ func (q *Queries) CreateCampaign(ctx context.Context, arg CreateCampaignParams) 
 		&i.Type,
 		&i.Title,
 		&i.Description,
-		&i.CoverImage,
 		&i.BankAccountNo,
 		&i.BankAccountName,
 		&i.QrImage,
@@ -66,7 +63,7 @@ func (q *Queries) CreateCampaign(ctx context.Context, arg CreateCampaignParams) 
 }
 
 const getCampaign = `-- name: GetCampaign :one
-SELECT id, group_id, type, title, description, cover_image, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns WHERE id = ?1
+SELECT id, group_id, type, title, description, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns WHERE id = ?1
 `
 
 func (q *Queries) GetCampaign(ctx context.Context, id int64) (Campaign, error) {
@@ -78,7 +75,6 @@ func (q *Queries) GetCampaign(ctx context.Context, id int64) (Campaign, error) {
 		&i.Type,
 		&i.Title,
 		&i.Description,
-		&i.CoverImage,
 		&i.BankAccountNo,
 		&i.BankAccountName,
 		&i.QrImage,
@@ -91,7 +87,7 @@ func (q *Queries) GetCampaign(ctx context.Context, id int64) (Campaign, error) {
 }
 
 const listCampaigns = `-- name: ListCampaigns :many
-SELECT id, group_id, type, title, description, cover_image, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns ORDER BY created_at DESC, id DESC
+SELECT id, group_id, type, title, description, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns ORDER BY created_at DESC, id DESC
 `
 
 func (q *Queries) ListCampaigns(ctx context.Context) ([]Campaign, error) {
@@ -109,7 +105,6 @@ func (q *Queries) ListCampaigns(ctx context.Context) ([]Campaign, error) {
 			&i.Type,
 			&i.Title,
 			&i.Description,
-			&i.CoverImage,
 			&i.BankAccountNo,
 			&i.BankAccountName,
 			&i.QrImage,
@@ -132,7 +127,7 @@ func (q *Queries) ListCampaigns(ctx context.Context) ([]Campaign, error) {
 }
 
 const listPublishedCampaigns = `-- name: ListPublishedCampaigns :many
-SELECT id, group_id, type, title, description, cover_image, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns WHERE status <> 'draft' ORDER BY created_at DESC, id DESC
+SELECT id, group_id, type, title, description, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code FROM campaigns WHERE status <> 'draft' ORDER BY created_at DESC, id DESC
 `
 
 func (q *Queries) ListPublishedCampaigns(ctx context.Context) ([]Campaign, error) {
@@ -150,7 +145,6 @@ func (q *Queries) ListPublishedCampaigns(ctx context.Context) ([]Campaign, error
 			&i.Type,
 			&i.Title,
 			&i.Description,
-			&i.CoverImage,
 			&i.BankAccountNo,
 			&i.BankAccountName,
 			&i.QrImage,
@@ -175,19 +169,18 @@ func (q *Queries) ListPublishedCampaigns(ctx context.Context) ([]Campaign, error
 const updateCampaign = `-- name: UpdateCampaign :one
 UPDATE campaigns
 SET type = ?1, title = ?2, description = ?3,
-    cover_image = ?4, bank_code = ?5,
-    bank_account_no = ?6, bank_account_name = ?7,
-    qr_image = ?8, status = ?9,
-    close_at = ?10
-WHERE id = ?11
-RETURNING id, group_id, type, title, description, cover_image, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code
+    bank_code = ?4,
+    bank_account_no = ?5, bank_account_name = ?6,
+    qr_image = ?7, status = ?8,
+    close_at = ?9
+WHERE id = ?10
+RETURNING id, group_id, type, title, description, bank_account_no, bank_account_name, qr_image, status, close_at, created_at, bank_code
 `
 
 type UpdateCampaignParams struct {
 	Type            string
 	Title           string
 	Description     string
-	CoverImage      string
 	BankCode        string
 	BankAccountNo   string
 	BankAccountName string
@@ -202,7 +195,6 @@ func (q *Queries) UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) 
 		arg.Type,
 		arg.Title,
 		arg.Description,
-		arg.CoverImage,
 		arg.BankCode,
 		arg.BankAccountNo,
 		arg.BankAccountName,
@@ -218,7 +210,6 @@ func (q *Queries) UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) 
 		&i.Type,
 		&i.Title,
 		&i.Description,
-		&i.CoverImage,
 		&i.BankAccountNo,
 		&i.BankAccountName,
 		&i.QrImage,

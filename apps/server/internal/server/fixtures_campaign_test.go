@@ -47,7 +47,7 @@ func (h *H) Close(campaignID int64) {
 		Type:            c.Type,
 		Title:           c.Title,
 		Description:     c.Description,
-		CoverImage:      c.CoverImage,
+		Photos:          c.Photos,
 		BankCode:        c.BankCode,
 		BankAccountNo:   c.BankAccountNo,
 		BankAccountName: c.BankAccountName,

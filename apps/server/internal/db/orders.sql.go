@@ -200,7 +200,7 @@ func (q *Queries) ListItemsForOrders(ctx context.Context, orderIds []int64) ([]L
 const listOrders = `-- name: ListOrders :many
 
 SELECT o.id, o.campaign_id, o.member_id, o.placed_by_admin, o.status, o.delivery, o.ship_name, o.ship_address, o.ship_phone, o.created_at, o.updated_at,
-       c.id, c.group_id, c.type, c.title, c.description, c.cover_image, c.bank_account_no, c.bank_account_name, c.qr_image, c.status, c.close_at, c.created_at, c.bank_code,
+       c.id, c.group_id, c.type, c.title, c.description, c.bank_account_no, c.bank_account_name, c.qr_image, c.status, c.close_at, c.created_at, c.bank_code,
        m.nickname  AS member_nickname,
        m.real_name AS member_real_name
 FROM orders o
@@ -256,7 +256,6 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]ListO
 			&i.Campaign.Type,
 			&i.Campaign.Title,
 			&i.Campaign.Description,
-			&i.Campaign.CoverImage,
 			&i.Campaign.BankAccountNo,
 			&i.Campaign.BankAccountName,
 			&i.Campaign.QrImage,

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -39,8 +40,6 @@ func (c Campaign) CanCheckout(actorIsAdmin bool, now time.Time) error {
 	return nil
 }
 
-// ValidateCampaign trims text fields, checks title, type, status and bank code, and normalises
-// CloseAt to UTC RFC3339.
 func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.Description = strings.TrimSpace(in.Description)
@@ -56,6 +55,10 @@ func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 		return in, &Error{Kind: Invalid, Msg: "สถานะอีเวนต์ไม่ถูกต้อง"}
 	case in.BankCode != "" && BankName(in.BankCode) == "":
 		return in, &Error{Kind: Invalid, Msg: "ธนาคารไม่ถูกต้อง"}
+	case hasDuplicate(in.Photos):
+		return in, &Error{Kind: Invalid, Msg: "มีรูปภาพซ้ำกัน"}
+	case slices.Contains(in.Photos, ""):
+		return in, &Error{Kind: Invalid, Msg: "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่"}
 	}
 	if in.CloseAt != nil {
 		t, err := time.Parse(time.RFC3339, *in.CloseAt)
@@ -66,6 +69,17 @@ func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 		in.CloseAt = &s
 	}
 	return in, nil
+}
+
+func hasDuplicate(names []string) bool {
+	seen := make(map[string]bool, len(names))
+	for _, n := range names {
+		if seen[n] {
+			return true
+		}
+		seen[n] = true
+	}
+	return false
 }
 
 // ValidateOption trims name and description; a fixed price must be positive (nil = Member
