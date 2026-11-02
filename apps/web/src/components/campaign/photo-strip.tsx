@@ -40,7 +40,6 @@ export function PhotoStrip({ photos }: { photos: string[] }) {
       >
         {photos.map((photo, i) => (
           <div key={photo} className="w-full shrink-0 snap-center">
-            {/* The jersey cover is a square product photo; other shapes letterbox inside the same box. */}
             <img
               src={imageUrl(photo)}
               alt=""

@@ -1,10 +1,8 @@
--- A Campaign holds any number of Campaign Photos in a chosen order; the first (lowest sort_order)
--- is the Cover. The single campaigns.cover_image becomes the photo at sort_order 0.
 -- +goose Up
 CREATE TABLE campaign_photos (
     id          INTEGER PRIMARY KEY,
     campaign_id INTEGER NOT NULL REFERENCES campaigns (id) ON DELETE CASCADE,
-    name        TEXT    NOT NULL, -- file name under DATA_DIR/files/images
+    name        TEXT    NOT NULL,
     sort_order  INTEGER NOT NULL,
     UNIQUE (campaign_id, name)
 );

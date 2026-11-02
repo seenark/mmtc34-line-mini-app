@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,6 @@ func domainCampaign(row db.Campaign) domain.Campaign {
 }
 
 // toAPICampaign is the only db.Campaign -> api.Campaign mapping; it writes the effective status.
-// photos are the row's Campaign Photo names in order; nil serializes as [].
 func (s *Server) toAPICampaign(row db.Campaign, photos []string) api.Campaign {
 	if photos == nil {
 		photos = []string{}
@@ -59,7 +59,6 @@ func (s *Server) toAPICampaign(row db.Campaign, photos []string) api.Campaign {
 	}
 }
 
-// replacePhotos makes names the Campaign's whole photo set; array index is the sort order.
 func replacePhotos(ctx context.Context, q *db.Queries, campaignID int64, names []string) error {
 	if err := q.DeleteCampaignPhotos(ctx, campaignID); err != nil {
 		return err
@@ -170,10 +169,7 @@ func (s *Server) bindCampaign(c *gin.Context) (in api.CampaignInput, ok bool) {
 	}
 	in, err := domain.ValidateCampaign(in)
 	if err == nil {
-		err = s.requirePhotos(in.Photos)
-	}
-	if err == nil {
-		err = s.requireImages(in.QRImage)
+		err = s.requireImages(append(slices.Clone(in.Photos), in.QRImage)...)
 	}
 	if err != nil {
 		fail(c, err)

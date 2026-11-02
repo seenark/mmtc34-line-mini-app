@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -39,8 +40,6 @@ func (c Campaign) CanCheckout(actorIsAdmin bool, now time.Time) error {
 	return nil
 }
 
-// ValidateCampaign trims text fields, checks title, type, status, bank code and that no Campaign
-// Photo is listed twice, and normalises CloseAt to UTC RFC3339.
 func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 	in.Title = strings.TrimSpace(in.Title)
 	in.Description = strings.TrimSpace(in.Description)
@@ -58,6 +57,8 @@ func ValidateCampaign(in api.CampaignInput) (api.CampaignInput, error) {
 		return in, &Error{Kind: Invalid, Msg: "ธนาคารไม่ถูกต้อง"}
 	case hasDuplicate(in.Photos):
 		return in, &Error{Kind: Invalid, Msg: "มีรูปภาพซ้ำกัน"}
+	case slices.Contains(in.Photos, ""):
+		return in, &Error{Kind: Invalid, Msg: "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่"}
 	}
 	if in.CloseAt != nil {
 		t, err := time.Parse(time.RFC3339, *in.CloseAt)

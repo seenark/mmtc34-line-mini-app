@@ -1,7 +1,13 @@
 import { Button } from "@mmtc34/ui/components/button";
 import { Input } from "@mmtc34/ui/components/input";
 import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 
 import { uploadImage } from "@/api/campaigns";
 import { ApiError } from "@/api/client";
@@ -12,41 +18,30 @@ import { Field } from "./field";
 const tile =
   "bg-muted relative flex aspect-square items-center justify-center overflow-hidden rounded-md";
 
-/**
- * `value` is the ordered stored image names. Picked files upload one at a time and each name is
- * appended as it lands; files still uploading are kept out of `value` and shown as placeholders.
- */
 export function PhotosField(props: {
   label: string;
   value: string[];
-  onChange: (next: string[]) => void;
+  onChange: Dispatch<SetStateAction<string[]>>;
   onUploadingChange: (uploading: boolean) => void;
 }) {
   const id = useId();
   const [pending, setPending] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  // The upload loop outlives the render that started it, so it appends to the latest array.
-  const latest = useRef(props.value);
-  latest.current = props.value;
 
   const { onUploadingChange } = props;
   useEffect(() => {
     onUploadingChange(pending > 0);
   }, [pending, onUploadingChange]);
 
-  function commit(next: string[]) {
-    latest.current = next;
-    props.onChange(next);
-  }
-
-  // Resolved by name against the latest array so a move during an in-flight upload keeps the new photos.
   function move(name: string, by: -1 | 1) {
-    const next = [...latest.current];
-    const from = next.indexOf(name);
-    const to = from + by;
-    if (from < 0 || to < 0 || to >= next.length) return;
-    next.splice(to, 0, ...next.splice(from, 1));
-    commit(next);
+    props.onChange((prev) => {
+      const next = [...prev];
+      const from = next.indexOf(name);
+      const to = from + by;
+      if (from < 0 || to < 0 || to >= next.length) return prev;
+      next.splice(to, 0, ...next.splice(from, 1));
+      return next;
+    });
   }
 
   async function upload(files: File[]) {
@@ -54,7 +49,8 @@ export function PhotosField(props: {
     setPending(files.length);
     for (const file of files) {
       try {
-        commit([...latest.current, await uploadImage(file)]);
+        const uploadedName = await uploadImage(file);
+        props.onChange((prev) => [...prev, uploadedName]);
       } catch (e) {
         setError(e instanceof ApiError ? e.message : "ไม่สามารถอ่านรูปภาพนี้ได้");
       }
@@ -84,7 +80,9 @@ export function PhotosField(props: {
                 size="icon-sm"
                 aria-label={`ลบรูปที่ ${i + 1}`}
                 className="absolute top-1 right-1"
-                onClick={() => commit(latest.current.filter((n) => n !== name))}
+                onClick={() =>
+                  props.onChange((prev) => prev.filter((n) => n !== name))
+                }
               >
                 <X aria-hidden />
               </Button>

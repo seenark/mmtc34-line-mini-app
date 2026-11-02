@@ -56,26 +56,14 @@ func (s *Server) imageExists(name string) bool {
 	return err == nil
 }
 
-var errImageNotFound = &domain.Error{Kind: domain.Invalid, Msg: "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่"}
-
 // requireImages is the 400 every Campaign / Option save answers for an unknown image name.
 func (s *Server) requireImages(names ...string) error {
 	for _, n := range names {
 		if !s.imageExists(n) {
-			return errImageNotFound
+			return &domain.Error{Kind: domain.Invalid, Msg: "ไม่พบรูปภาพ กรุณาอัปโหลดใหม่"}
 		}
 	}
 	return nil
-}
-
-// requirePhotos is requireImages for Campaign Photos, where an empty name is not "no image".
-func (s *Server) requirePhotos(names []string) error {
-	for _, n := range names {
-		if n == "" {
-			return errImageNotFound
-		}
-	}
-	return s.requireImages(names...)
 }
 
 func (s *Server) uploadImage(c *gin.Context) {
